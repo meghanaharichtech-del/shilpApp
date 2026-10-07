@@ -171,7 +171,7 @@ const MenuItemRow = ({ icon: Icon, label, subtitle, isLast, onPress }) => (
     android_ripple={{ color: "#F5F5F5" }}
   >
     <View style={styles.menuIconWrap}>
-      <Icon size={20} color="#C96A10" strokeWidth={1.8} />
+      <Icon size={20} color="#121212" strokeWidth={1.8} />
     </View>
     <View style={styles.menuTextWrap}>
       <Text style={styles.menuLabel}>{label}</Text>
@@ -1714,7 +1714,7 @@ const styles = StyleSheet.create({
   },
   menuIconWrap: {
     alignItems: "center",
-    backgroundColor: "#FFF5EC",
+    backgroundColor: theme.colors.borderlightgraycolour,
     borderRadius: 10,
     height: 40,
     justifyContent: "center",

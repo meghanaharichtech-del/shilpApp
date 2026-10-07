@@ -75,7 +75,7 @@ const InfoRow = ({
   const content = (
     <View style={[styles.infoRow, !isLast && styles.infoRowBorder]}>
       <View style={styles.infoIconWrap}>
-        <Icon size={18} color="#C96A10" strokeWidth={1.8} />
+        <Icon size={18} color="#121212" strokeWidth={1.8} />
       </View>
       <View style={styles.infoTextWrap}>
         <Text style={styles.infoLabel}>{label}</Text>
@@ -239,7 +239,7 @@ const ProfileScreen = ({ navigation }) => {
           <Text style={styles.screenTitle}>Profile</Text>
           <View style={styles.partnerBadge}>
             <Text style={styles.partnerBadgeText}>
-              {broker?.role === "admin" ? "Admin" : "Channel Partner"}
+              {broker?.role === "admin" ? "Channel Partner" : "Channel Partner"}
             </Text>
           </View>
         </View>
@@ -694,7 +694,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   sectionActionText: {
-    color: theme.colors.orangeColor,
+    color: theme.colors.graysubtext,
     fontFamily: theme.fonts.semiBold,
     fontSize: 13,
   },
@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
   },
   infoIconWrap: {
     alignItems: "center",
-    backgroundColor: "#FFF5EC",
+    backgroundColor: theme.colors.borderlightgraycolour,
     borderRadius: 10,
     height: 38,
     justifyContent: "center",
