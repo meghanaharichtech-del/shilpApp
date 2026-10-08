@@ -1,55 +1,33 @@
-import { StyleSheet, Text, ImageBackground, View } from 'react-native'
-import React, { useEffect } from 'react'
+import React, { useEffect } from 'react';
+import { ImageBackground } from 'react-native';
 import { StorageUtils } from '../utils/StorageUtils';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { authDestination, brokerRequest, saveSession } from '../utils/brokerApi';
 
-const SplashScreen = ({navigation}) => {
-    useEffect(() => {
-    const checkUserData = async () => {
+export default function SplashScreen({ navigation }) {
+  useEffect(() => {
+    let active = true;
+    async function restoreSession() {
+      let destination = 'LoginScreen';
       try {
-        const userData = await StorageUtils.getItem('userData');
-        console.log("userdataaaaaaa",userData);
-        
-        if (userData) {
-          setTimeout(() => {
-            navigation.replace('BottomTab');
-          },800);
+        let session = await StorageUtils.getItem('userData');
+        if (session?.token) {
+          try {
+            session = await saveSession(await brokerRequest('profile', 'get', undefined, true));
+          } catch {
+            session = await StorageUtils.getItem('userData');
+          }
+          destination = authDestination(session);
         } else {
-          setTimeout(() => {
-            navigation.replace('OnboardingScreen1');
-          }, 800);
+          const pending = await StorageUtils.getItem('pendingAuth');
+          destination = pending?.email ? 'OtpScreen' : 'OnboardingScreen1';
         }
-      } catch (error) {
-        console.error('Error reading user data', error);
-        // navigation.replace('LoginScreen');
+      } finally {
+        if (active) navigation.reset({ index: 0, routes: [{ name: destination }] });
       }
-    };
-    checkUserData();
-  }, []);
-  return (
-    <View style={{ flex: 1 }}>
-<ImageBackground
-  source={require('../assets/SplashScreenimg.png')}
-  style={{ flex: 1 }}
-  resizeMode="cover"
-/>
-</View>
-  )
+    }
+    restoreSession().catch(() => {});
+    return () => { active = false; };
+  }, [navigation]);
+
+  return <ImageBackground source={require('../assets/SplashScreenimg.png')} style={{ flex: 1 }} />;
 }
-
-export default SplashScreen
-
-const styles = StyleSheet.create({
-  background: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  title: {
-    fontSize: 40,
-    fontFamily: 'Manrope_700Bold',
-    color: '#121212',
-    letterSpacing: 2,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-})

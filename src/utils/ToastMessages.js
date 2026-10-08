@@ -10,12 +10,10 @@ export const showToastMSGNormal = (data) => {
     autoHide: true,
     topOffset: 30,
     bottomOffset: 0,
-    style: {
-      borderRadius: 50,
-    },
   });
 };
 
+// Error Toast (Failure)
 export const showToastMSGError = (data) => {
   Toast.show({
     type: "error",
@@ -28,6 +26,7 @@ export const showToastMSGError = (data) => {
   });
 };
 
+// Info Toast (For general information)
 export const showToastMSGInfo = (data) => {
   Toast.show({
     type: "info",
@@ -40,9 +39,10 @@ export const showToastMSGInfo = (data) => {
   });
 };
 
+// Warning Toast
 export const showToastMSGWarning = (data) => {
   Toast.show({
-    type: "info",  
+    type: "warning",
     position: "bottom",
     text1: data,
     visibilityTime: 2000,

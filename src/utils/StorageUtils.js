@@ -34,7 +34,7 @@ export const StorageUtils = {
 export const getCurrentUserId = async () => {
   try {
     const userData = await StorageUtils.getItem('userData');
-    return userData?.id ?? null;
+    return userData?.user?.id ?? userData?.data?.user?.id ?? userData?.id ?? null;
   } catch (error) {
     console.error('Error getting current user ID from AsyncStorage', error);
     return null;

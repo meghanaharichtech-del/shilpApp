@@ -34,6 +34,7 @@ import axios from "axios";
 import { BASEURL, PROJECTS_API } from "../utils/ApiHelper";
 import { theme } from "../utils/theme";
 import { StorageUtils } from "../utils/StorageUtils";
+import { showToastMSGNormal } from "../utils/ToastMessages";
 
 const FALLBACK_IMAGE = require("../assets/defaultnoimg.png");
 const BANNER_IMAGES = [
@@ -221,6 +222,7 @@ const HomeScreen = ({ navigation }) => {
 
   const selectCategory = (category) => {
     setActiveCategory(category);
+    showToastMSGNormal("hello")
   };
 
   const renderCategoryChips = () => (

@@ -19,8 +19,6 @@ const Loader = (props) => {
             size="large"
             style={styles.activityIndicator}
           />
-          {/* <Text style={{ color: "#121212", marginBottom: 16, fontWeight: 'bold' }}>Please wait...</Text> */}
-        {/* </View> */}
       </View>
     </Modal>
   )
@@ -36,7 +34,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
   },
   activityIndicatorWrapper: {
-    backgroundColor: theme.colors.orangeColor,
+    backgroundColor: theme.colors.blackText,
     height: 80,
     width: 100,
     borderRadius: 10,

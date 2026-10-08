@@ -1,4 +1,3 @@
-import { NavigationBar } from 'expo-navigation-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/Appnavigator';
 import {
@@ -39,7 +38,6 @@ export default function App() {
 
   return (
     <>
-      <NavigationBar />
 
       <SafeAreaProvider>
         <AppNavigator />

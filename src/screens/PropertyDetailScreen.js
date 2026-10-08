@@ -6,7 +6,6 @@ import React, {
   useMemo,
 } from "react";
 import {
-  Alert,
   Animated,
   Dimensions,
   Easing,
@@ -51,6 +50,7 @@ import {
 import { theme } from "../utils/theme";
 import { BASEURL, PROJECTS_API } from "../utils/ApiHelper";
 import { StorageUtils } from "../utils/StorageUtils";
+import CustomDialog from "../components/CustomDialog";
 import axios from "axios";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -181,14 +181,6 @@ const MenuItemRow = ({ icon: Icon, label, subtitle, isLast, onPress }) => (
   </Pressable>
 );
 
-// ─── Stat Pill Component ───────────────────────────────────────────────────────
-const StatPill = ({ icon: Icon, value, label, isLast }) => (
-  <View style={[styles.statPill, !isLast && styles.statPillBorder]}>
-    <Icon size={18} color="#C96A10" strokeWidth={1.8} />
-    <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
 
 // ─── Bottom Sheet Modal ────────────────────────────────────────────────────────
 const BottomSheet = ({ visible, onClose, title, subtitle, children }) => (
@@ -259,6 +251,7 @@ const CategoryChip = ({ label, count, active, onPress }) => (
 
 // ─── Document Row ──────────────────────────────────────────────────────────────
 const DocumentRow = ({ icon: Icon, title, subtitle, url, isLast }) => {
+  const [dialog, setDialog] = useState(null);
   const hasUrl = Boolean(
     url && typeof url === "string" && url.trim().length > 0,
   );
@@ -273,45 +266,53 @@ const DocumentRow = ({ icon: Icon, title, subtitle, url, isLast }) => {
           await Linking.openURL(url);
         }
       } catch (e) {
-        Alert.alert(
-          "Cannot Open Document",
-          "Unable to open this document link on your device. Please check your browser or PDF viewer.",
-        );
+        setDialog({
+          title: "Cannot Open Document",
+          message:
+            "Unable to open this document link on your device. Please check your browser or PDF viewer.",
+        });
       }
     } else {
-      Alert.alert(
-        "Document Pending",
-        `The ${title} has not been uploaded yet for this project. It will be available once uploaded by the developer.`,
-        [{ text: "OK" }],
-      );
+      setDialog({
+        title: "Document Pending",
+        message: `The ${title} has not been uploaded yet for this project. It will be available once uploaded by the developer.`,
+      });
     }
   };
 
   return (
-    <Pressable
-      style={[styles.docRow, !isLast && styles.docRowBorder]}
-      onPress={handlePress}
-    >
-      <View style={styles.docIconWrap}>
-        <Icon size={20} color="#C96A10" strokeWidth={1.8} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.docTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.docSubtitle}>{subtitle}</Text> : null}
-      </View>
-      <View style={styles.docActionWrap}>
-        {hasUrl ? (
-          <View style={styles.docBadgeAvailable}>
-            <Text style={styles.docBadgeTextAvailable}>View</Text>
-            <ExternalLink size={13} color="#C96A10" />
-          </View>
-        ) : (
-          <View style={styles.docBadgePending}>
-            <Text style={styles.docBadgeTextPending}>Pending</Text>
-          </View>
-        )}
-      </View>
-    </Pressable>
+    <>
+      <Pressable
+        style={[styles.docRow, !isLast && styles.docRowBorder]}
+        onPress={handlePress}
+      >
+        <View style={styles.docIconWrap}>
+          <Icon size={20} color="#C96A10" strokeWidth={1.8} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.docTitle}>{title}</Text>
+          {subtitle ? <Text style={styles.docSubtitle}>{subtitle}</Text> : null}
+        </View>
+        <View style={styles.docActionWrap}>
+          {hasUrl ? (
+            <View style={styles.docBadgeAvailable}>
+              <Text style={styles.docBadgeTextAvailable}>View</Text>
+              <ExternalLink size={13} color="#C96A10" />
+            </View>
+          ) : (
+            <View style={styles.docBadgePending}>
+              <Text style={styles.docBadgeTextPending}>Pending</Text>
+            </View>
+          )}
+        </View>
+      </Pressable>
+      <CustomDialog
+        visible={Boolean(dialog)}
+        title={dialog?.title}
+        message={dialog?.message}
+        onClose={() => setDialog(null)}
+      />
+    </>
   );
 };
 
@@ -1260,22 +1261,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* ── Location ── */}
-        <View style={styles.locationRow}>
-          <MapPin size={15} color="#888888" />
-          <Text style={styles.locationText}>{location}</Text>
-        </View>
-
-        {/* ── Stats Row ── */}
-        <View style={styles.statsCard}>
-          <StatPill icon={BarChart3} value={totalUnits} label="Projects" />
-          <StatPill
-            icon={LayoutGrid}
-            value={projectType}
-            label="Property Type"
-          />
-          <StatPill icon={MapPin} value={pincode} label="Pincode" isLast />
-        </View>
+     
 
         {/* ── Description ── */}
         <View style={styles.descriptionWrap}>
