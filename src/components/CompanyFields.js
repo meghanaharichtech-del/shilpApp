@@ -1,7 +1,9 @@
 import React from 'react';
-import { Image, Text, TouchableOpacity } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Field, styles } from './AuthLayout';
+import { ImagePlus } from 'lucide-react-native';
+import { theme } from '../utils/theme';
 export default function CompanyFields({
   name,
   setName,
@@ -11,6 +13,8 @@ export default function CompanyFields({
 }) {
   async function pick() {
     try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) throw new Error('Allow photo library access to choose a company logo.');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
@@ -27,14 +31,15 @@ export default function CompanyFields({
       onError(e.message);
     }
   }
-  return <><Field label="Company name" value={name} onChangeText={setName} maxLength={200} />{logo ? <Image source={{
-      uri: logo
-    }} style={{
-      height: 90,
-      width: 90,
-      borderRadius: 12
-    }} resizeMode="contain" /> : null}<TouchableOpacity onPress={pick}><Text style={styles.link}>{logo ? 'Change company logo' : 'Upload company logo'}</Text></TouchableOpacity><Field label="Or enter a logo URL" value={logo.startsWith('data:') ? '' : logo} onChangeText={setLogo} autoCapitalize="none" keyboardType="url" placeholder="https://example.com/logo.png" /></>;
+  return <><Field label="Company name" value={name} onChangeText={setName} maxLength={200} /><View style={localStyles.logoRow}>{logo ? <Image source={{ uri: logo }} style={localStyles.logo} resizeMode="contain" /> : <View style={localStyles.logoPlaceholder}><ImagePlus size={25} color={theme.colors.grayiconcolor} /></View>}<TouchableOpacity onPress={pick} style={localStyles.uploadButton}><ImagePlus size={17} color={theme.colors.orangeColor} /><Text style={styles.link}>{logo ? 'Change company logo' : 'Choose logo from gallery'}</Text></TouchableOpacity></View></>;
 }
 export function validCompany(name, logo) {
   return !!name.trim() && name.trim().length <= 200 && (/^https?:\/\/[^\s]+$/i.test(logo.trim()) || /^data:image\/(png|jpeg|webp);base64,/.test(logo));
 }
+
+const localStyles = StyleSheet.create({
+  logoRow: { alignItems: 'center', flexDirection: 'row', gap: 14 },
+  logo: { backgroundColor: '#F5F5F5', borderRadius: 10, height: 72, width: 72 },
+  logoPlaceholder: { alignItems: 'center', backgroundColor: '#F3F3F3', borderRadius: 10, height: 72, justifyContent: 'center', width: 72 },
+  uploadButton: { alignItems: 'center', flexDirection: 'row', flexShrink: 1, gap: 7, minHeight: 44 },
+});

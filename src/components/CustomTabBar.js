@@ -1,17 +1,20 @@
 import React from 'react';
-import { BellDot, ChartNoAxesCombined, House, Settings, UserRound } from 'lucide-react-native';
+import { Bell, ChartNoAxesCombined, House, Settings, UserRound } from 'lucide-react-native';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import NotificationBadge from './NotificationBadge';
+import { useNotifications } from '../context/NotificationContext';
 const tabIcons = {
   Home: House,
   AnalyticsScreen: ChartNoAxesCombined,
-  NotificationScreen: BellDot,
+  NotificationScreen: Bell,
   ProfileScreen: UserRound,
   SettingsScreen: Settings,
 };
 
 export function CustomTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
+  const { unreadCount } = useNotifications();
 
   return (
     <View style={[styles.wrapper, { bottom: Math.max(insets.bottom, 10) }]}>
@@ -48,7 +51,10 @@ export function CustomTabBar({ state, descriptors, navigation }) {
                 pressed && styles.pressedTab,
               ]}
             >
-              <TabIcon size={20} color="#F4F4F5" strokeWidth={2.35} />
+              <View>
+                <TabIcon size={20} color="#F4F4F5" strokeWidth={2.35} />
+                {route.name === 'NotificationScreen' ? <NotificationBadge count={unreadCount} style={styles.badge} /> : null}
+              </View>
             </Pressable>
           );
         })}
@@ -91,5 +97,9 @@ const styles = StyleSheet.create({
   },
   pressedTab: {
     opacity: Platform.OS === 'ios' ? 0.72 : 0.85,
+  },
+  badge: {
+    right: -12,
+    top: -9,
   },
 });

@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, forwardRef, useContext, useEffect, useRef, useCallback } from 'react';
 import { Keyboard, ImageBackground, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, ActivityIndicator, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../utils/theme';
+import { ArrowLeft } from 'lucide-react-native';
 const FormScrollContext = createContext(null);
 export default function AuthLayout({
   title,
@@ -11,7 +12,8 @@ export default function AuthLayout({
   action,
   onSubmit,
   loading,
-  footer
+  footer,
+  onBack
 }) {
   const scrollRef = useRef(null);
   const focusedY = useRef(null);
@@ -43,27 +45,27 @@ export default function AuthLayout({
         flex: 1
       }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><FormScrollContext.Provider value={focusField}><ScrollView ref={scrollRef} style={{
             flex: 1
-          }} keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}><View style={{
+          }} keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>{onBack ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" onPress={onBack} style={styles.backButton}><ArrowLeft size={21} color={theme.colors.blackText} /></TouchableOpacity> : null}<View style={{
               gap: 6
             }}><Text style={styles.title}>{title}</Text><Text style={styles.subtitle}>{subtitle}</Text></View>{children}{error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}{footer}<TouchableOpacity accessibilityRole="button" disabled={loading} onPress={onSubmit} style={[styles.button, loading && {
               opacity: 0.6
             }]}>{loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{action}</Text>}</TouchableOpacity></ScrollView></FormScrollContext.Provider></KeyboardAvoidingView></SafeAreaView></ImageBackground>;
 }
-export function Field({
+export const Field = forwardRef(function Field({
   label,
   ...props
-}) {
+}, ref) {
   const focusField = useContext(FormScrollContext);
   const position = useRef(0);
   return <View onLayout={event => {
     position.current = event.nativeEvent.layout.y;
   }} style={{
     gap: 6
-  }}><Text style={styles.label}>{label}</Text><TextInput placeholderTextColor={theme.colors.textlightgray} style={styles.input} autoCorrect={false} {...props} onFocus={event => {
+  }}><Text style={styles.label}>{label}</Text><TextInput ref={ref} placeholderTextColor={theme.colors.textlightgray} style={styles.input} autoCorrect={false} {...props} onFocus={event => {
       focusField?.(position.current);
       props.onFocus?.(event);
     }} /></View>;
-}
+});
 export const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
@@ -71,6 +73,16 @@ export const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 32,
     gap: 18
+  },
+  backButton: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: theme.colors.borderColor,
+    borderRadius: 8,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: 'center',
+    width: 40
   },
   title: {
     fontSize: 24,

@@ -52,6 +52,7 @@ import { BASEURL, PROJECTS_API } from "../utils/ApiHelper";
 import { StorageUtils } from "../utils/StorageUtils";
 import CustomDialog from "../components/CustomDialog";
 import axios from "axios";
+import { propertyResources } from "../utils/propertyResources";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const IMAGE_HEIGHT = 200;
@@ -287,7 +288,7 @@ const DocumentRow = ({ icon: Icon, title, subtitle, url, isLast }) => {
         onPress={handlePress}
       >
         <View style={styles.docIconWrap}>
-          <Icon size={20} color="#C96A10" strokeWidth={1.8} />
+          <Icon size={20} color="#121212" strokeWidth={1.8} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.docTitle}>{title}</Text>
@@ -443,6 +444,12 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
   // Modal states
   const [activeModal, setActiveModal] = useState(null);
+  const [resourceError, setResourceError] = useState(null);
+  const openResource = async (url) => {
+    if (!url) return;
+    try { await Linking.openURL(url); }
+    catch { setResourceError("Unable to open this link. Please check your browser or PDF viewer."); }
+  };
   const [galleryFilter, setGalleryFilter] = useState("all");
 
   const openModal = (name) => setActiveModal(name);
@@ -628,18 +635,9 @@ const PropertyDetailScreen = ({ navigation, route }) => {
       ? description.slice(0, 150) + "..."
       : description;
 
-  // Brochure data
-  const brochureUrl = buildFullUrl(
-    project?.brochure || project?.brochureUrl || project?.brochurePdf,
-  );
-
-  // Virtual walkthrough
-  const walkthroughUrl =
-    project?.virtualWalkthrough ||
-    project?.walkthroughUrl ||
-    project?.walkthrough ||
-    project?.virtualTourUrl ||
-    null;
+  const resources = propertyResources(project, buildFullUrl);
+  const brochureUrl = resources.brochure;
+  const walkthroughUrl = resources.walkthrough;
 
   // Plot / inventory data
   const plots =
@@ -655,7 +653,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
     const addDoc = (title, subtitle, rawUrl, type = "document") => {
       const url = buildFullUrl(rawUrl);
-      const key = `${title || ""}_${url || ""}`;
+      const key = url || title;
       if (seenKeys.has(key)) return;
       seenKeys.add(key);
       list.push({ title, subtitle, url, type });
@@ -663,7 +661,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
     // 1. If project.documents array exists (from ProjectDocument collection)
     if (Array.isArray(project?.documents)) {
-      project.documents.forEach((doc, idx) => {
+      project.documents.filter(doc => ["legal", "rera", "approval", "title"].includes(doc?.type)).forEach((doc, idx) => {
         const fileUrl = doc.fileUrl || doc.url || doc.file || doc.link;
         const title = doc.title || doc.name || `Document ${idx + 1}`;
         const type = doc.type || "document";
@@ -752,7 +750,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           addDoc(
             doc.title || `Document ${i + 1}`,
             doc.description || null,
-            doc.fileUrl || doc.url,
+            typeof doc === "string" ? doc : doc.fileUrl || doc.url,
             doc.type || "legal",
           );
         });
@@ -783,30 +781,6 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         "NA Order",
         "Non-agricultural conversion order",
         project.naOrder || project.naDoc,
-        "legal",
-      );
-    }
-
-    // 4. If list still empty, show the essential legal checkpoints
-    if (list.length === 0) {
-      addDoc(
-        "RERA Certificate",
-        project?.reraNumber
-          ? `RERA No: ${project.reraNumber}`
-          : "Approval pending",
-        null,
-        "rera",
-      );
-      addDoc(
-        "Title Clear Certificate",
-        "Legal clearance documentation",
-        null,
-        "title",
-      );
-      addDoc(
-        "NA Order",
-        "Non-agricultural conversion order",
-        null,
         "legal",
       );
     }
@@ -855,7 +829,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
       {brochureUrl ? (
         <Pressable
           style={styles.brochureCard}
-          onPress={() => Linking.openURL(brochureUrl).catch(() => {})}
+          onPress={() => openResource(brochureUrl)}
         >
           <View style={styles.brochureIconWrap}>
             <FileDown size={28} color="#C96A10" />
@@ -889,7 +863,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
       {walkthroughUrl ? (
         <Pressable
           style={styles.walkthroughCard}
-          onPress={() => Linking.openURL(walkthroughUrl).catch(() => {})}
+          onPress={() => openResource(walkthroughUrl)}
         >
           <View style={styles.walkthroughPreview}>
             <Image
@@ -930,7 +904,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
   const renderPlotContent = () => (
     <View>
       {/* Plot layout image */}
-      {plotLayout && (
+      {plotLayout && !/\.pdf(?:[?#]|$)/i.test(typeof plotLayout === "string" ? plotLayout : plotLayout?.url || "") && (
         <View style={styles.plotLayoutWrap}>
           <Image
             source={imageSource(
@@ -942,6 +916,9 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           />
         </View>
       )}
+
+      {plotLayout && <DocumentRow icon={FileText} title="Master plan" url={buildFullUrl(typeof plotLayout === "string" ? plotLayout : plotLayout?.url)} />}
+      {(project?.floorPlans || []).map((plan, index) => <DocumentRow key={`floor-plan-${index}`} icon={FileText} title={plan.title || `Floor plan ${index + 1}`} url={buildFullUrl(plan.pdf || plan.image)} />)}
 
       {/* Configurations / Plot sizes */}
       {configurations.length > 0 && (
@@ -965,9 +942,9 @@ const PropertyDetailScreen = ({ navigation, route }) => {
                     config.size ||
                     `Config ${idx + 1}`}
                 </Text>
-                {config.area || config.sqft ? (
+                {config.areaSqFt || config.area || config.sqft ? (
                   <Text style={styles.configSub}>
-                    {config.area || config.sqft}
+                    {config.areaSqFt || config.area || config.sqft}
                     {config.unit || " sq.ft."}
                   </Text>
                 ) : null}
@@ -1263,6 +1240,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
      
 
+        {resources.directions && <Pressable style={styles.locationRow} accessibilityRole="link" onPress={() => openResource(resources.directions)}><MapPin size={18} color="#C96A10" /><Text style={styles.locationText}>Open map · {location || "Get directions"}</Text></Pressable>}
+
         {/* ── Description ── */}
         <View style={styles.descriptionWrap}>
           <Text style={styles.descriptionText}>{descriptionTruncated}</Text>
@@ -1284,37 +1263,36 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         </View>
 
         {/* ── Project Resources ── */}
-        <View style={styles.sectionHeader}>
+        {(brochureUrl || allGalleryImages.all.length > 0 || walkthroughUrl || project?.factSheet?.fileUrl || project?.brokeragePolicy?.pdfUrl) && <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Project Resources</Text>
-          <Pressable>
-            <Text style={styles.seeAll}>See all</Text>
-          </Pressable>
-        </View>
-        <View style={styles.menuCard}>
-          <MenuItemRow
+        </View>}
+        {(brochureUrl || allGalleryImages.all.length > 0 || walkthroughUrl || project?.factSheet?.fileUrl || project?.brokeragePolicy?.pdfUrl) && <View style={styles.menuCard}>
+          {brochureUrl && <MenuItemRow
             icon={BookOpen}
             label="Project Brochure"
             subtitle="Download project brochure"
             onPress={() => openModal("brochure")}
-          />
-          <MenuItemRow
+          />}
+          {project?.factSheet?.fileUrl && <DocumentRow icon={FileText} title={project.factSheet.title || "Fact sheet"} url={buildFullUrl(project.factSheet.fileUrl)} />}
+          {project?.brokeragePolicy?.pdfUrl && <DocumentRow icon={FileText} title="Brokerage policy" url={buildFullUrl(project.brokeragePolicy.pdfUrl)} />}
+          {allGalleryImages.all.length > 0 && <MenuItemRow
             icon={Images}
             label="Gallery"
             subtitle="View project images and media"
             onPress={() => openModal("gallery")}
-          />
-          <MenuItemRow
+          />}
+          {walkthroughUrl && <MenuItemRow
             icon={Video}
             label="Virtual Walkthrough"
             subtitle="Experience the project in 3D"
             isLast
-            onPress={() => openModal("walkthrough")}
-          />
-        </View>
+            onPress={() => openResource(walkthroughUrl)}
+          />}
+        </View>}
 
         {/* ── Inventory ── */}
-        <Text style={styles.sectionTitle}>Inventory</Text>
-        <View style={styles.menuCard}>
+        {(plotLayout || configurations.length > 0 || plots) && <Text style={styles.sectionTitle}>Inventory</Text>}
+        {(plotLayout || configurations.length > 0 || plots) && <View style={styles.menuCard}>
           <MenuItemRow
             icon={LayoutGrid}
             label="Plot Availability"
@@ -1322,31 +1300,31 @@ const PropertyDetailScreen = ({ navigation, route }) => {
             isLast
             onPress={() => openModal("plots")}
           />
-        </View>
+        </View>}
 
         {/* ── Project Information ── */}
-        <Text style={styles.sectionTitle}>Project Information</Text>
-        <View style={styles.menuCard}>
-          <MenuItemRow
+        {(legalDocs.length > 0 || constructionUpdates.length > 0 || creatives.length > 0) && <Text style={styles.sectionTitle}>Project Information</Text>}
+        {(legalDocs.length > 0 || constructionUpdates.length > 0 || creatives.length > 0) && <View style={styles.menuCard}>
+          {legalDocs.length > 0 && <MenuItemRow
             icon={ShieldCheck}
             label="Legal Documents"
             subtitle="Approvals, legal and compliance"
             onPress={() => openModal("legal")}
-          />
-          <MenuItemRow
+          />}
+          {constructionUpdates.length > 0 && <MenuItemRow
             icon={HardHat}
             label="Construction Update"
             subtitle="Track project progress"
             onPress={() => openModal("construction")}
-          />
-          <MenuItemRow
+          />}
+          {creatives.length > 0 && <MenuItemRow
             icon={Send}
             label="Social Media Creative"
             subtitle="Marketing assets and creatives"
             isLast
             onPress={() => openModal("creatives")}
-          />
-        </View>
+          />}
+        </View>}
 
         {/* Bottom spacer for tab bar */}
         <View style={{ height: 100 }} />
@@ -1467,6 +1445,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
       >
         {renderCreativesContent()}
       </BottomSheet>
+      <CustomDialog visible={Boolean(resourceError)} title="Cannot open resource" message={resourceError || ""} confirmText="OK" onClose={() => setResourceError(null)} onConfirm={() => setResourceError(null)} />
     </SafeAreaView>
   );
 };
@@ -2005,6 +1984,7 @@ const styles = StyleSheet.create({
   docRow: {
     alignItems: "center",
     flexDirection: "row",
+    paddingHorizontal: 14,
     paddingVertical: 14,
   },
   docRowBorder: {
@@ -2013,7 +1993,7 @@ const styles = StyleSheet.create({
   },
   docIconWrap: {
     alignItems: "center",
-    backgroundColor: "#FFF5EC",
+    backgroundColor: theme.colors.borderlightgraycolour,
     borderRadius: 10,
     height: 40,
     justifyContent: "center",

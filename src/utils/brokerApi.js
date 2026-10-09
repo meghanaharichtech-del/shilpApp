@@ -8,13 +8,13 @@ export function onSessionExpired(listener) {
 }
 
 export const apiError = error => error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Please try again.';
-export async function brokerRequest(path, method = 'get', body, authenticated = false, options = {}) {
+export async function apiRequest(path, method = 'get', body, authenticated = false, options = {}) {
   const session = authenticated ? await StorageUtils.getItem('userData') : null;
   const token = session?.token || session?.data?.token || session?.accessToken || session?.data?.accessToken;
   if (authenticated && !token) throw new Error('Your session has expired. Please sign in again.');
   try {
     const response = await axios({
-      url: `${BASEURL}api/broker/${path}`,
+      url: `${BASEURL}${String(path).replace(/^\//, '')}`,
       method,
       data: body,
       timeout: 30000,
@@ -32,6 +32,9 @@ export async function brokerRequest(path, method = 'get', body, authenticated = 
     }
     throw error;
   }
+}
+export function brokerRequest(path, method = 'get', body, authenticated = false, options = {}) {
+  return apiRequest(`api/broker/${path}`, method, body, authenticated, options);
 }
 export async function saveSession(data) {
   const previous = await StorageUtils.getItem('userData');

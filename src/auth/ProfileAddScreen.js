@@ -20,7 +20,7 @@ export default function ProfileAddScreen({ navigation }) {
   async function save() {
     if (loading) return;
     if (!validCompany(name, logo)) {
-      setError('Enter your company name and upload a logo or provide a valid HTTP(S) logo URL.');
+      setError('Enter your company name and choose a company logo from the gallery.');
       return;
     }
     setLoading(true);

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Text, TouchableOpacity } from 'react-native';
-import AuthLayout, { Field, styles } from '../components/AuthLayout';
+import AuthLayout, { Field } from '../components/AuthLayout';
 import CompanyFields, { validCompany } from '../components/CompanyFields';
 import { brokerRequest, apiError, saveSession } from '../utils/brokerApi';
 export default function ProfileEditScreen({ navigation }) {
@@ -25,7 +24,7 @@ export default function ProfileEditScreen({ navigation }) {
   async function save() {
     if (loading || !loaded) return;
     if (!name.trim() || name.trim().length > 120 || phone && !/^\d{10}$/.test(phone) || !validCompany(company, logo)) {
-      setError('Enter your name, optional 10-digit phone, company name and valid logo.');
+      setError('Enter your name, optional 10-digit phone, company name and choose a valid logo.');
       return;
     }
     setLoading(true);
@@ -48,5 +47,5 @@ export default function ProfileEditScreen({ navigation }) {
       setLoading(false);
     }
   }
-  return <AuthLayout title="Edit profile" subtitle="Update your broker and company details" action="Save Changes" onSubmit={save} loading={loading || !loaded} error={error} footer={<TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.link}>Cancel</Text></TouchableOpacity>}><Field label="Full name" value={name} onChangeText={setName} maxLength={120} /><Field label="Email (verified)" value={email} editable={false} /><Field label="Phone number (optional)" value={phone} onChangeText={setPhone} keyboardType="number-pad" maxLength={10} /><CompanyFields name={company} setName={setCompany} logo={logo} setLogo={setLogo} onError={setError} /></AuthLayout>;
+  return <AuthLayout title="Edit profile" subtitle="Update your broker and company details" action="Save Changes" onSubmit={save} onBack={() => navigation.goBack()} loading={loading || !loaded} error={error}><Field label="Full name" value={name} onChangeText={setName} maxLength={120} /><Field label="Email (verified)" value={email} editable={false} /><Field label="Phone number (optional)" value={phone} onChangeText={setPhone} keyboardType="number-pad" maxLength={10} /><CompanyFields name={company} setName={setCompany} logo={logo} setLogo={setLogo} onError={setError} /></AuthLayout>;
 }

@@ -11,6 +11,7 @@ import {
   Easing,
   FlatList,
   Image,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -22,7 +23,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ArrowUpRight,
-  BellDot,
+  Bell,
+  Check,
   MapPin,
   Search,
   Settings,
@@ -34,7 +36,8 @@ import axios from "axios";
 import { BASEURL, PROJECTS_API } from "../utils/ApiHelper";
 import { theme } from "../utils/theme";
 import { StorageUtils } from "../utils/StorageUtils";
-import { showToastMSGNormal } from "../utils/ToastMessages";
+import NotificationBadge from "../components/NotificationBadge";
+import { useNotifications } from "../context/NotificationContext";
 
 const FALLBACK_IMAGE = require("../assets/defaultnoimg.png");
 const BANNER_IMAGES = [
@@ -45,6 +48,16 @@ const BANNER_IMAGES = [
 const BANNER_AUTO_SLIDE_DURATION = 3500;
 const ACTIVE_DOT_WIDTH = 28;
 const PAGE_SIZE = 20;
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "price-low", label: "Price: low to high" },
+  { value: "price-high", label: "Price: high to low" },
+];
+const projectPrice = project => {
+  const value = Number(project?.plotDetails?.price ?? project?.configurations?.[0]?.price);
+  return Number.isFinite(value) ? value : null;
+};
 
 const firstImage = (project) =>
   project?.bannerImage ||
@@ -80,10 +93,13 @@ const formatPrice = (price) => {
 };
 
 const HomeScreen = ({ navigation }) => {
+  const { unreadCount } = useNotifications();
   const [projects, setProjects] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+  const [sortOption, setSortOption] = useState("newest");
+  const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -94,12 +110,11 @@ const HomeScreen = ({ navigation }) => {
   const isAutoScrollingRef = useRef(false);
   const slideIndexRef = useRef(0);
   slideIndexRef.current = slideIndex;
-  const [categoryOffset, setCategoryOffset] = useState(null);
-  const [isCategorySticky, setIsCategorySticky] = useState(false);
 
   const loadProjects = useCallback(
     async (searchText = "", category = "All", isRefresh = false) => {
-      isRefresh ? setRefreshing(true) : setLoading(true);
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
       setError("");
       try {
         const userData = await StorageUtils.getItem("userData");
@@ -111,6 +126,7 @@ const HomeScreen = ({ navigation }) => {
           throw new Error("Your session has expired. Please sign in again.");
         }
         const params = { page: 1, limit: PAGE_SIZE };
+        params.sort = sortOption === "oldest" ? "createdAt" : "-createdAt";
         if (searchText.trim()) params.search = searchText.trim();
         if (category !== "All") params.category = category.toLowerCase();
 
@@ -144,7 +160,7 @@ const HomeScreen = ({ navigation }) => {
         setRefreshing(false);
       }
     },
-    [],
+    [sortOption],
   );
 
   useEffect(() => {
@@ -222,13 +238,31 @@ const HomeScreen = ({ navigation }) => {
 
   const selectCategory = (category) => {
     setActiveCategory(category);
-    showToastMSGNormal("hello")
   };
+
+  const sortedProjects = useMemo(() => [...projects].sort((a, b) => {
+    if (sortOption === "oldest") return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+    if (sortOption === "price-low") return (projectPrice(a) ?? Infinity) - (projectPrice(b) ?? Infinity);
+    if (sortOption === "price-high") return (projectPrice(b) ?? -Infinity) - (projectPrice(a) ?? -Infinity);
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  }), [projects, sortOption]);
+
+  const listData = useMemo(() => [
+    { _listType: "categories", _listKey: "categories" },
+    { _listType: "heading", _listKey: "heading" },
+    ...(sortedProjects.length > 0
+      ? sortedProjects
+      : [{ _listType: "empty", _listKey: "empty" }]),
+  ], [sortedProjects]);
 
   const renderCategoryChips = () => (
     <ScrollView
       horizontal
+      nestedScrollEnabled
+      directionalLockEnabled
+      keyboardShouldPersistTaps="handled"
       showsHorizontalScrollIndicator={false}
+      style={styles.categoryScroll}
       contentContainerStyle={styles.categoryList}
     >
       {categories.map((category) => (
@@ -329,6 +363,18 @@ const price = rawPrice !== null
     );
   };
 
+  const renderListItem = ({ item }) => {
+    if (item._listType === "categories") return <View style={styles.stickyCategoryRow}>{renderCategoryChips()}</View>;
+    if (item._listType === "heading") return <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>Featured Projects</Text><Text style={styles.viewAll}>View all</Text></View>;
+    if (item._listType === "empty") return !loading ? <View style={styles.emptyState}>
+      {error ? <WifiOff size={28} color="#777" /> : <Search size={28} color="#777" />}
+      <Text style={styles.emptyTitle}>{error ? "Projects unavailable" : "No projects found"}</Text>
+      <Text style={styles.emptyText}>{error || "Try changing your search or filters."}</Text>
+      <Pressable onPress={() => loadProjects(query, activeCategory)} style={styles.retryButton}><Text style={styles.retryText}>Try again</Text></Pressable>
+    </View> : null;
+    return renderProject({ item });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <View style={styles.header}>
@@ -341,10 +387,11 @@ const price = rawPrice !== null
             style={styles.iconButton}
             hitSlop={8}
           >
-            <BellDot size={21} color="#111111" />
+            <Bell size={21} color="#111111" />
+            <NotificationBadge count={unreadCount} style={styles.notificationBadge} />
           </Pressable>
           <Pressable
-            onPress={() => navigation.navigate("ProfileScreen")}
+            onPress={() => navigation.navigate("SettingsScreen")}
             style={styles.iconButton}
             hitSlop={8}
           >
@@ -354,21 +401,14 @@ const price = rawPrice !== null
       </View>
 
       <FlatList
-        data={projects}
-        keyExtractor={(item, index) => item._id || item.slug || String(index)}
-        renderItem={renderProject}
+        nestedScrollEnabled
+        data={listData}
+        keyExtractor={(item, index) => item._listKey || item._id || item.slug || String(index)}
+        renderItem={renderListItem}
+        stickyHeaderIndices={[1]}
         // style={{ gap: 16 }}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        onScroll={(event) => {
-          if (categoryOffset === null) return;
-          const shouldStick =
-            event.nativeEvent.contentOffset.y >= categoryOffset;
-          setIsCategorySticky((current) =>
-            current === shouldStick ? current : shouldStick,
-          );
-        }}
-        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -468,49 +508,14 @@ const price = rawPrice !== null
                 ) : null}
               </View>
               <Pressable
-                onPress={() => selectCategory("All")}
-                style={styles.filterButton}
+                onPress={() => setShowFilters(true)}
+                style={[styles.filterButton, sortOption !== "newest" && styles.filterButtonSelected]}
               >
                 <SlidersHorizontal size={22} color="#141414" />
               </Pressable>
             </View>
 
-            <View
-              onLayout={(event) =>
-                setCategoryOffset(event.nativeEvent.layout.y)
-              }
-            >
-              {renderCategoryChips()}
-            </View>
-
-            <View style={styles.sectionHeading}>
-              <Text style={styles.sectionTitle}>Featured Projects</Text>
-              <Text style={styles.viewAll}>View all</Text>
-            </View>
           </>
-        }
-        ListEmptyComponent={
-          !loading ? (
-            <View style={styles.emptyState}>
-              {error ? (
-                <WifiOff size={28} color="#777" />
-              ) : (
-                <Search size={28} color="#777" />
-              )}
-              <Text style={styles.emptyTitle}>
-                {error ? "Projects unavailable" : "No projects found"}
-              </Text>
-              <Text style={styles.emptyText}>
-                {error || "Try changing your search or filters."}
-              </Text>
-              <Pressable
-                onPress={() => loadProjects(query, activeCategory)}
-                style={styles.retryButton}
-              >
-                <Text style={styles.retryText}>Try again</Text>
-              </Pressable>
-            </View>
-          ) : null
         }
         ListFooterComponent={
           loading ? (
@@ -524,9 +529,17 @@ const price = rawPrice !== null
           )
         }
       />
-      {isCategorySticky && (
-        <View style={styles.stickyCategoryBar}>{renderCategoryChips()}</View>
-      )}
+      <Modal visible={showFilters} transparent animationType="fade" onRequestClose={() => setShowFilters(false)}>
+        <Pressable style={styles.filterOverlay} onPress={() => setShowFilters(false)}>
+          <Pressable style={styles.filterSheet} onPress={() => {}}>
+            <View style={styles.filterHeader}><Text style={styles.filterTitle}>Sort projects</Text><Pressable accessibilityLabel="Close filters" onPress={() => setShowFilters(false)}><X size={20} color="#555555" /></Pressable></View>
+            {SORT_OPTIONS.map(option => <Pressable key={option.value} onPress={() => { setSortOption(option.value); setShowFilters(false); }} style={styles.sortRow}>
+              <Text style={[styles.sortLabel, sortOption === option.value && styles.sortLabelActive]}>{option.label}</Text>
+              {sortOption === option.value ? <Check size={19} color={theme.colors.orangeColor} /> : null}
+            </Pressable>)}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -569,6 +582,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 44,
   },
+  notificationBadge: { right: -5, top: -5 },
   carouselWrap: { marginBottom: 10, width: "100%" },
   carousel: { width: "100%" },
   slide: { paddingRight: 5 },
@@ -632,16 +646,26 @@ const styles = StyleSheet.create({
     // width: 56,
   },
   filterButtonActive: { backgroundColor: theme.colors.borderlightgraycolour },
+  filterButtonSelected: { backgroundColor: "#FFF0E7", borderColor: theme.colors.orangeColor, borderWidth: 1 },
+  filterOverlay: { backgroundColor: "rgba(0,0,0,0.42)", flex: 1, justifyContent: "flex-end" },
+  filterSheet: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 28, paddingHorizontal: 18, paddingTop: 18 },
+  filterHeader: { alignItems: "center", borderBottomColor: "#EEEEEE", borderBottomWidth: 1, flexDirection: "row", justifyContent: "space-between", paddingBottom: 14 },
+  filterTitle: { color: "#191919", fontFamily: theme.fonts.bold, fontSize: 17 },
+  sortRow: { alignItems: "center", borderBottomColor: "#F0F0F0", borderBottomWidth: 1, flexDirection: "row", justifyContent: "space-between", minHeight: 54 },
+  sortLabel: { color: "#555555", fontFamily: theme.fonts.medium, fontSize: 14 },
+  sortLabelActive: { color: "#191919", fontFamily: theme.fonts.bold },
   categoryList: { gap: 9, paddingBottom: 10 },
-  stickyCategoryBar: {
+  categoryScroll: { flexGrow: 0 },
+  stickyCategoryRow: {
     backgroundColor: "#FFFFFF",
-    left: 0,
+    borderBottomColor: "#EEEEEE",
+    borderBottomWidth: 1,
+    marginHorizontal: -16,
+    paddingBottom: 2,
     paddingHorizontal: 16,
     paddingTop: 8,
-    position: "absolute",
-    right: 0,
-    top: 88,
-    zIndex: 10,
+    elevation: 4,
+    zIndex: 20,
   },
   categoryChip: {
     backgroundColor: "#F6F6F6",
@@ -661,7 +685,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 10,
-    // marginTop: 32,
+    marginTop: 8,
   },
   sectionTitle: {
     color: theme.colors.blackText,

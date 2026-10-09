@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import AuthLayout, { Field, styles } from '../components/AuthLayout';
 import { brokerRequest, apiError } from '../utils/brokerApi';
 import { StorageUtils } from '../utils/StorageUtils';
 export default function SignupScreen({ navigation }) {
+  const emailRef = useRef(null);
+  const phoneRef = useRef(null);
+  const passwordRef = useRef(null);
+  const confirmRef = useRef(null);
   const [name, setName] = useState(''),
     [email, setEmail] = useState(''),
     [phone, setPhone] = useState(''),
@@ -39,5 +43,5 @@ export default function SignupScreen({ navigation }) {
       setLoading(false);
     }
   }
-  return <AuthLayout title="Create your account" subtitle="Join Shilp as a channel partner" error={error} action="Sign Up" loading={loading} onSubmit={submit} footer={<TouchableOpacity onPress={() => navigation.reset({ index: 0, routes: [{ name: 'LoginScreen' }] })}><Text style={styles.link}>Already have an account? Sign In</Text></TouchableOpacity>}><Field label="Full name" value={name} onChangeText={setName} maxLength={120} /><Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" /><Field label="Phone number (optional)" value={phone} onChangeText={setPhone} keyboardType="number-pad" maxLength={10} /><Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" /><Field label="Confirm password" value={confirm} onChangeText={setConfirm} secureTextEntry autoCapitalize="none" /></AuthLayout>;
+  return <AuthLayout title="Create your account" subtitle="Join Shilp as a channel partner" error={error} action="Sign Up" loading={loading} onSubmit={submit} footer={<TouchableOpacity onPress={() => navigation.reset({ index: 0, routes: [{ name: 'LoginScreen' }] })}><Text style={styles.link}>Already have an account? Sign In</Text></TouchableOpacity>}><Field label="Full name" value={name} onChangeText={setName} maxLength={120} returnKeyType="next" blurOnSubmit={false} onSubmitEditing={() => emailRef.current?.focus()} /><Field ref={emailRef} label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" returnKeyType="next" blurOnSubmit={false} onSubmitEditing={() => phoneRef.current?.focus()} /><Field ref={phoneRef} label="Phone number (optional)" value={phone} onChangeText={setPhone} keyboardType="number-pad" maxLength={10} returnKeyType="next" blurOnSubmit={false} onSubmitEditing={() => passwordRef.current?.focus()} /><Field ref={passwordRef} label="Password" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" returnKeyType="next" blurOnSubmit={false} onSubmitEditing={() => confirmRef.current?.focus()} /><Field ref={confirmRef} label="Confirm password" value={confirm} onChangeText={setConfirm} secureTextEntry autoCapitalize="none" returnKeyType="done" onSubmitEditing={submit} /></AuthLayout>;
 }

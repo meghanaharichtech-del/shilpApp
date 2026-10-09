@@ -12,6 +12,7 @@ import {
 } from '@expo-google-fonts/manrope';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { NotificationProvider } from './src/context/NotificationContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -40,7 +41,9 @@ export default function App() {
     <>
 
       <SafeAreaProvider>
-        <AppNavigator />
+        <NotificationProvider>
+          <AppNavigator />
+        </NotificationProvider>
       </SafeAreaProvider>
     </>
   );

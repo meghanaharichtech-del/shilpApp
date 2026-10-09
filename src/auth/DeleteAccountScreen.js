@@ -4,7 +4,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthLayout, { Field, styles } from '../components/AuthLayout';
 import CustomDialog from '../components/CustomDialog';
 import { apiError, brokerRequest } from '../utils/brokerApi';
+import { useNotifications } from '../context/NotificationContext';
 export default function DeleteAccountScreen({ navigation }) {
+  const { clearNotifications } = useNotifications();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,6 +44,7 @@ export default function DeleteAccountScreen({ navigation }) {
     setPassword('');
     try {
       await AsyncStorage.multiRemove(['userData', 'brokerProfile', 'pendingAuth']);
+      clearNotifications();
       navigation.reset({ index: 0, routes: [{ name: 'LoginScreen' }] });
     } catch {
       setError('Your account was deleted, but the saved session could not be cleared. Tap below to try again.');
@@ -57,6 +60,7 @@ export default function DeleteAccountScreen({ navigation }) {
     setLoading(true);
     try {
       await AsyncStorage.multiRemove(['userData', 'brokerProfile', 'pendingAuth']);
+      clearNotifications();
       navigation.reset({ index: 0, routes: [{ name: 'LoginScreen' }] });
     } catch {
       setError('Unable to clear your saved session. Please try again.');
