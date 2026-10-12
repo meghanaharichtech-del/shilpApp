@@ -161,7 +161,7 @@ export default function ProfileScreen({ navigation }) {
             <Image
               source={{ uri: profile.companyLogo }}
               style={styles.companyLogo}
-              resizeMode="contain"
+              resizeMode="cover"
             />
           ) : (
             <View style={styles.companyLogoPlaceholder}>

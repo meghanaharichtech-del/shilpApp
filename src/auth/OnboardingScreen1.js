@@ -198,12 +198,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.borderlightgraycolour,
+    backgroundColor: theme.colors.grayiconcolor,
   },
 
   dotActive: {
-    width: 10,
-    height: 10,
+    width: 25,
+    height: 8,
     borderRadius: 5,
     backgroundColor: '#121212',
   },

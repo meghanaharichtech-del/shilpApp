@@ -1,5 +1,6 @@
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/Appnavigator';
+import { FavoritesProvider } from './src/context/FavoritesContext';
 import {
   useFonts,
   Manrope_200ExtraLight,
@@ -42,7 +43,7 @@ export default function App() {
 
       <SafeAreaProvider>
         <NotificationProvider>
-          <AppNavigator />
+          <FavoritesProvider><AppNavigator /></FavoritesProvider>
         </NotificationProvider>
       </SafeAreaProvider>
     </>

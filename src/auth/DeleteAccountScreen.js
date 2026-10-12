@@ -1,3 +1,4 @@
+import { useFavorites } from '../context/FavoritesContext';
 import React, { useRef, useState } from 'react';
 import { Keyboard, Text, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -6,6 +7,7 @@ import CustomDialog from '../components/CustomDialog';
 import { apiError, brokerRequest } from '../utils/brokerApi';
 import { useNotifications } from '../context/NotificationContext';
 export default function DeleteAccountScreen({ navigation }) {
+  const { clearFavorites } = useFavorites();
   const { clearNotifications } = useNotifications();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -44,6 +46,7 @@ export default function DeleteAccountScreen({ navigation }) {
     setPassword('');
     try {
       await AsyncStorage.multiRemove(['userData', 'brokerProfile', 'pendingAuth']);
+      clearFavorites();
       clearNotifications();
       navigation.reset({ index: 0, routes: [{ name: 'LoginScreen' }] });
     } catch {
@@ -60,6 +63,7 @@ export default function DeleteAccountScreen({ navigation }) {
     setLoading(true);
     try {
       await AsyncStorage.multiRemove(['userData', 'brokerProfile', 'pendingAuth']);
+      clearFavorites();
       clearNotifications();
       navigation.reset({ index: 0, routes: [{ name: 'LoginScreen' }] });
     } catch {

@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   notificationIcon: {
     alignItems: "center",
     backgroundColor: "#F2F2F2",
-    borderRadius: 20,
+    borderRadius: 10,
     height: 40,
     justifyContent: "center",
     width: 40,

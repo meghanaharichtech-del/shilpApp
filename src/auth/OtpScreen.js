@@ -5,11 +5,13 @@ import { brokerRequest, apiError, saveSession, authDestination } from '../utils/
 import { StorageUtils } from '../utils/StorageUtils';
 import { useNotifications } from '../context/NotificationContext';
 import { theme } from '../utils/theme';
+import { showToastMSGNormal } from '../utils/ToastMessages';
 export default function OtpScreen({ navigation, route }) {
   const inputRef = useRef(null);
   const { refreshUnreadCount } = useNotifications();
   const params = route.params || {};
   const [email, setEmail] = useState(typeof params.email === 'string' ? params.email : ''),
+    [authFlow, setAuthFlow] = useState(params.authFlow === 'signup' ? 'signup' : 'login'),
     [otp, setOtp] = useState(''),
     [error, setError] = useState(''),
     [loading, setLoading] = useState(false),
@@ -20,6 +22,7 @@ export default function OtpScreen({ navigation, route }) {
     StorageUtils.getItem('pendingAuth').then(data => {
       if (data) {
         setEmail(data.email);
+        setAuthFlow(data.authFlow === 'signup' ? 'signup' : 'login');
         setUntil(data.resendAt || Date.now());
       }
     });
@@ -47,6 +50,7 @@ export default function OtpScreen({ navigation, route }) {
       const session = await saveSession(data);
       await refreshUnreadCount().catch(() => {});
       await StorageUtils.removeItem('pendingAuth');
+      showToastMSGNormal(authFlow === 'signup' ? 'Account created successfully' : 'Logged in successfully');
       navigation.reset({ index: 0, routes: [{ name: authDestination(session) }] });
     } catch (e) {
       setError(apiError(e));

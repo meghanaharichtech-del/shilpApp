@@ -12,6 +12,7 @@ export async function apiRequest(path, method = 'get', body, authenticated = fal
   const session = authenticated ? await StorageUtils.getItem('userData') : null;
   const token = session?.token || session?.data?.token || session?.accessToken || session?.data?.accessToken;
   if (authenticated && !token) throw new Error('Your session has expired. Please sign in again.');
+  if (options.expectedSessionToken && options.expectedSessionToken !== token) throw new Error('Your account changed. Please try again.');
   try {
     const response = await axios({
       url: `${BASEURL}${String(path).replace(/^\//, '')}`,
@@ -23,7 +24,7 @@ export async function apiRequest(path, method = 'get', body, authenticated = fal
       } : {}
     });
     if (!response.data?.success) throw new Error(response.data?.error || 'Unable to complete request');
-    return response.data.data;
+    return options.rawResponse ? response.data : response.data.data;
   } catch (error) {
     if (authenticated && error?.response?.status === 401 && !options.keepSessionOnUnauthorized) {
       await StorageUtils.removeItem('userData');

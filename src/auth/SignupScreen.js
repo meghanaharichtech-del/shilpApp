@@ -34,9 +34,10 @@ export default function SignupScreen({ navigation }) {
       });
       await StorageUtils.setItem('pendingAuth', {
         ...data,
+        authFlow: 'signup',
         resendAt: Date.now() + (data.resendAfterSeconds || 60) * 1000
       });
-      navigation.replace('OtpScreen', { email: data.email });
+      navigation.replace('OtpScreen', { email: data.email, authFlow: 'signup' });
     } catch (e) {
       setError(apiError(e));
     } finally {

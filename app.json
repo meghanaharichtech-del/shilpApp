@@ -15,7 +15,8 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "package": "com.meghana1904.shilpApp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -28,8 +29,19 @@
           "enforceContrast": false,
           "style": "dark"
         }
-      ]
+      ],
+      "expo-sharing",
+      "expo-asset"
     ],
-    "scheme": "shilpapp"
+    "scheme": "shilpapp",
+    "extra": {
+      "expo-navigation-bar": {
+        "enforceContrast": false,
+        "style": "dark"
+      },
+      "eas": {
+        "projectId": "82a61e95-46c2-44fe-82ad-80c3134e943f"
+      }
+    }
   }
 }

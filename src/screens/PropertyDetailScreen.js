@@ -1,3 +1,4 @@
+import FavoriteHeartButton from '../components/FavoriteHeartButton';
 import React, {
   useRef,
   useState,
@@ -22,7 +23,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ArrowLeft,
-  Heart,
   Share2,
   MapPin,
   ChevronRight,
@@ -33,14 +33,14 @@ import {
   Video,
   LayoutGrid,
   FileText,
+  ExternalLink,
+  FileDown,
+  Download,
   HardHat,
   Send,
   ShieldCheck,
   BarChart3,
   X,
-  Download,
-  ExternalLink,
-  FileDown,
   FileImage,
   Play,
   CheckCircle2,
@@ -52,6 +52,7 @@ import { BASEURL, PROJECTS_API } from "../utils/ApiHelper";
 import { StorageUtils } from "../utils/StorageUtils";
 import CustomDialog from "../components/CustomDialog";
 import axios from "axios";
+import PdfDocumentViewer from "../components/PdfDocumentViewer";
 import { propertyResources } from "../utils/propertyResources";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -184,7 +185,7 @@ const MenuItemRow = ({ icon: Icon, label, subtitle, isLast, onPress }) => (
 
 
 // ─── Bottom Sheet Modal ────────────────────────────────────────────────────────
-const BottomSheet = ({ visible, onClose, title, subtitle, children }) => (
+const BottomSheet = ({ visible, onClose, title, subtitle, children, document, onCloseDocument }) => (
   <Modal
     visible={visible}
     transparent
@@ -228,9 +229,10 @@ const BottomSheet = ({ visible, onClose, title, subtitle, children }) => (
           contentContainerStyle={styles.modalBodyContent}
           showsVerticalScrollIndicator={false}
           bounces={false}
+          scrollEnabled={!document}
           keyboardShouldPersistTaps="handled"
         >
-          {children}
+          {visible && document ? <PdfDocumentViewer key={document.url} document={document} onBack={onCloseDocument} height={SCREEN_HEIGHT * 0.55} /> : children}
         </ScrollView>
       </View>
     </Pressable>
@@ -251,34 +253,15 @@ const CategoryChip = ({ label, count, active, onPress }) => (
 );
 
 // ─── Document Row ──────────────────────────────────────────────────────────────
-const DocumentRow = ({ icon: Icon, title, subtitle, url, isLast }) => {
+const DocumentRow = ({ icon: Icon, title, subtitle, url, isLast, onView }) => {
   const [dialog, setDialog] = useState(null);
   const hasUrl = Boolean(
     url && typeof url === "string" && url.trim().length > 0,
   );
 
-  const handlePress = async () => {
-    if (hasUrl) {
-      try {
-        const supported = await Linking.canOpenURL(url);
-        if (supported) {
-          await Linking.openURL(url);
-        } else {
-          await Linking.openURL(url);
-        }
-      } catch (e) {
-        setDialog({
-          title: "Cannot Open Document",
-          message:
-            "Unable to open this document link on your device. Please check your browser or PDF viewer.",
-        });
-      }
-    } else {
-      setDialog({
-        title: "Document Pending",
-        message: `The ${title} has not been uploaded yet for this project. It will be available once uploaded by the developer.`,
-      });
-    }
+  const handlePress = () => {
+    if (hasUrl) onView({ url, title });
+    else setDialog({ title: "Document Pending", message: `The ${title} has not been uploaded yet for this project.` });
   };
 
   return (
@@ -316,6 +299,8 @@ const DocumentRow = ({ icon: Icon, title, subtitle, url, isLast }) => {
     </>
   );
 };
+
+
 
 // ─── Construction Timeline Item ────────────────────────────────────────────────
 const TimelineItem = ({ update, isLast }) => {
@@ -392,58 +377,35 @@ const PropertyDetailScreen = ({ navigation, route }) => {
     }
   }, [initialProject]);
 
-  // Fetch full project details including documents, brochure, creatives
+  // Both APIs are authoritative: detail supplies media and documents supplies file URLs.
   useEffect(() => {
-    const fetchFullDetails = async () => {
-      const pid = initialProject?._id || initialProject?.id;
-      if (!pid) return;
-
-      try {
-        const userData = await StorageUtils.getItem("userData");
-        const accessToken =
-          userData?.token ||
-          userData?.accessToken ||
-          userData?.data?.accessToken;
-        if (!accessToken) return;
-
-        const res = await axios.get(`${PROJECTS_API}/${pid}`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-
-        if (res.data?.success && res.data?.project) {
-          setProject((prev) => ({ ...prev, ...res.data.project }));
-        }
-      } catch (err) {
-        // Fallback: try fetching documents directly from /api/projects/:id/documents
-        try {
-          const userData = await StorageUtils.getItem("userData");
-          const accessToken =
-            userData?.token ||
-            userData?.accessToken ||
-            userData?.data?.accessToken;
-          if (!accessToken) return;
-
-          const docRes = await axios.get(`${PROJECTS_API}/${pid}/documents`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          });
-
-          if (docRes.data?.success && docRes.data?.documents) {
-            setProject((prev) => ({
-              ...prev,
-              documents: docRes.data.documents,
-            }));
-          }
-        } catch (_) {}
-      }
+    const pid = initialProject?._id || initialProject?.id;
+    if (!pid) return;
+    const controller = new AbortController();
+    const fetchDetails = async () => {
+      const userData = await StorageUtils.getItem("userData");
+      const accessToken = userData?.token || userData?.accessToken || userData?.data?.token || userData?.data?.accessToken;
+      if (!accessToken || controller.signal.aborted) return;
+      const config = { headers: { Authorization: `Bearer ${accessToken}` }, signal: controller.signal };
+      const [detail, documents] = await Promise.allSettled([
+        axios.get(`${PROJECTS_API}/${pid}`, config),
+        axios.get(`${PROJECTS_API}/${pid}/documents`, config),
+      ]);
+      if (controller.signal.aborted) return;
+      setProject(prev => ({ ...prev,
+        ...(detail.status === "fulfilled" && detail.value.data?.success ? detail.value.data.project : {}),
+        ...(documents.status === "fulfilled" && documents.value.data?.success ? { documents: documents.value.data.documents } : {}),
+      }));
     };
-
-    fetchFullDetails();
+    fetchDetails().catch(() => {});
+    return () => controller.abort();
   }, [initialProject?._id, initialProject?.id]);
   const [descExpanded, setDescExpanded] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
 
   // Modal states
   const [activeModal, setActiveModal] = useState(null);
+  const [pdfDocument, setPdfDocument] = useState(null);
+  const openPdf = (document) => setPdfDocument(document);
   const [resourceError, setResourceError] = useState(null);
   const openResource = async (url) => {
     if (!url) return;
@@ -452,8 +414,9 @@ const PropertyDetailScreen = ({ navigation, route }) => {
   };
   const [galleryFilter, setGalleryFilter] = useState("all");
 
-  const openModal = (name) => setActiveModal(name);
+  const openModal = (name) => { setPdfDocument(null); setActiveModal(name); };
   const closeModal = () => {
+    setPdfDocument(null);
     setActiveModal(null);
     setGalleryFilter("all");
   };
@@ -829,7 +792,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
       {brochureUrl ? (
         <Pressable
           style={styles.brochureCard}
-          onPress={() => openResource(brochureUrl)}
+          onPress={() => openPdf({ url: brochureUrl, title: `${projectName} - Brochure` })}
         >
           <View style={styles.brochureIconWrap}>
             <FileDown size={28} color="#C96A10" />
@@ -917,8 +880,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         </View>
       )}
 
-      {plotLayout && <DocumentRow icon={FileText} title="Master plan" url={buildFullUrl(typeof plotLayout === "string" ? plotLayout : plotLayout?.url)} />}
-      {(project?.floorPlans || []).map((plan, index) => <DocumentRow key={`floor-plan-${index}`} icon={FileText} title={plan.title || `Floor plan ${index + 1}`} url={buildFullUrl(plan.pdf || plan.image)} />)}
+      {plotLayout && <DocumentRow onView={openPdf} icon={FileText} title="Master plan" url={buildFullUrl(typeof plotLayout === "string" ? plotLayout : plotLayout?.url)} />}
+      {(project?.floorPlans || []).map((plan, index) => <DocumentRow onView={openPdf} key={`floor-plan-${index}`} icon={FileText} title={plan.title || `Floor plan ${index + 1}`} url={buildFullUrl(plan.pdf || plan.image)} />)}
 
       {/* Configurations / Plot sizes */}
       {configurations.length > 0 && (
@@ -1039,8 +1002,10 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
   const renderLegalContent = () => (
     <View>
+      {project?.factSheet?.fileUrl && <DocumentRow onView={openPdf} icon={FileText} title={project.factSheet.title || "Fact sheet"} url={buildFullUrl(project.factSheet.fileUrl)} />}
+      {project?.brokeragePolicy?.pdfUrl && <DocumentRow onView={openPdf} icon={FileText} title="Brokerage policy" url={buildFullUrl(project.brokeragePolicy.pdfUrl)} />}
       {legalDocs.map((doc, idx) => (
-        <DocumentRow
+        <DocumentRow onView={openPdf}
           key={`doc-${idx}`}
           icon={doc.type === "rera" ? ShieldCheck : FileText}
           title={doc.title}
@@ -1132,17 +1097,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         </Pressable>
         <Text style={styles.headerTitle}>SHILP</Text>
         <View style={styles.headerRight}>
-          <Pressable
-            style={styles.headerBtn}
-            onPress={() => setIsLiked(!isLiked)}
-            hitSlop={10}
-          >
-            <Heart
-              size={20}
-              color={isLiked ? "#E53935" : "#191919"}
-              fill={isLiked ? "#E53935" : "none"}
-            />
-          </Pressable>
+          <FavoriteHeartButton project={project} style={styles.headerBtn} />
           <Pressable style={styles.headerBtn} hitSlop={10}>
             <Share2 size={20} color="#191919" />
           </Pressable>
@@ -1263,18 +1218,16 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         </View>
 
         {/* ── Project Resources ── */}
-        {(brochureUrl || allGalleryImages.all.length > 0 || walkthroughUrl || project?.factSheet?.fileUrl || project?.brokeragePolicy?.pdfUrl) && <View style={styles.sectionHeader}>
+        {(brochureUrl || allGalleryImages.all.length > 0 || walkthroughUrl) && <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Project Resources</Text>
         </View>}
-        {(brochureUrl || allGalleryImages.all.length > 0 || walkthroughUrl || project?.factSheet?.fileUrl || project?.brokeragePolicy?.pdfUrl) && <View style={styles.menuCard}>
+        {(brochureUrl || allGalleryImages.all.length > 0 || walkthroughUrl) && <View style={styles.menuCard}>
           {brochureUrl && <MenuItemRow
             icon={BookOpen}
             label="Project Brochure"
             subtitle="Download project brochure"
             onPress={() => openModal("brochure")}
           />}
-          {project?.factSheet?.fileUrl && <DocumentRow icon={FileText} title={project.factSheet.title || "Fact sheet"} url={buildFullUrl(project.factSheet.fileUrl)} />}
-          {project?.brokeragePolicy?.pdfUrl && <DocumentRow icon={FileText} title="Brokerage policy" url={buildFullUrl(project.brokeragePolicy.pdfUrl)} />}
           {allGalleryImages.all.length > 0 && <MenuItemRow
             icon={Images}
             label="Gallery"
@@ -1284,7 +1237,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           {walkthroughUrl && <MenuItemRow
             icon={Video}
             label="Virtual Walkthrough"
-            subtitle="Experience the project in 3D"
+            subtitle="Open project location in maps"
             isLast
             onPress={() => openResource(walkthroughUrl)}
           />}
@@ -1303,9 +1256,9 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         </View>}
 
         {/* ── Project Information ── */}
-        {(legalDocs.length > 0 || constructionUpdates.length > 0 || creatives.length > 0) && <Text style={styles.sectionTitle}>Project Information</Text>}
-        {(legalDocs.length > 0 || constructionUpdates.length > 0 || creatives.length > 0) && <View style={styles.menuCard}>
-          {legalDocs.length > 0 && <MenuItemRow
+        {(legalDocs.length > 0 || project?.factSheet?.fileUrl || project?.brokeragePolicy?.pdfUrl || constructionUpdates.length > 0 || creatives.length > 0) && <Text style={styles.sectionTitle}>Project Information</Text>}
+        {(legalDocs.length > 0 || project?.factSheet?.fileUrl || project?.brokeragePolicy?.pdfUrl || constructionUpdates.length > 0 || creatives.length > 0) && <View style={styles.menuCard}>
+          {(legalDocs.length > 0 || project?.factSheet?.fileUrl || project?.brokeragePolicy?.pdfUrl) && <MenuItemRow
             icon={ShieldCheck}
             label="Legal Documents"
             subtitle="Approvals, legal and compliance"
@@ -1334,6 +1287,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
       {/* ── Gallery Modal ── */}
       <BottomSheet
+        document={pdfDocument}
+        onCloseDocument={() => setPdfDocument(null)}
         visible={activeModal === "gallery"}
         onClose={closeModal}
         title="Gallery"
@@ -1388,6 +1343,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
       {/* ── Brochure Modal ── */}
       <BottomSheet
+        document={pdfDocument}
+        onCloseDocument={() => setPdfDocument(null)}
         visible={activeModal === "brochure"}
         onClose={closeModal}
         title="Project Brochure"
@@ -1398,16 +1355,20 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
       {/* ── Walkthrough Modal ── */}
       <BottomSheet
+        document={pdfDocument}
+        onCloseDocument={() => setPdfDocument(null)}
         visible={activeModal === "walkthrough"}
         onClose={closeModal}
         title="Virtual Walkthrough"
-        subtitle="Experience the project in 3D"
+        subtitle="Open project location in maps"
       >
         {renderWalkthroughContent()}
       </BottomSheet>
 
       {/* ── Plot Availability Modal ── */}
       <BottomSheet
+        document={pdfDocument}
+        onCloseDocument={() => setPdfDocument(null)}
         visible={activeModal === "plots"}
         onClose={closeModal}
         title="Plot Availability"
@@ -1418,6 +1379,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
       {/* ── Legal Documents Modal ── */}
       <BottomSheet
+        document={pdfDocument}
+        onCloseDocument={() => setPdfDocument(null)}
         visible={activeModal === "legal"}
         onClose={closeModal}
         title="Legal Documents"
@@ -1428,6 +1391,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
       {/* ── Construction Updates Modal ── */}
       <BottomSheet
+        document={pdfDocument}
+        onCloseDocument={() => setPdfDocument(null)}
         visible={activeModal === "construction"}
         onClose={closeModal}
         title="Construction Update"
@@ -1438,6 +1403,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
       {/* ── Social Media Creatives Modal ── */}
       <BottomSheet
+        document={pdfDocument}
+        onCloseDocument={() => setPdfDocument(null)}
         visible={activeModal === "creatives"}
         onClose={closeModal}
         title="Social Media Creative"

@@ -1,12 +1,14 @@
 import React from 'react';
-import { Bell, ChartNoAxesCombined, House, Settings, UserRound } from 'lucide-react-native';
+import { Bell, ChartNoAxesCombined, Heart, House, Search, Settings, UserRound } from 'lucide-react-native';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import NotificationBadge from './NotificationBadge';
 import { useNotifications } from '../context/NotificationContext';
 const tabIcons = {
   Home: House,
-  AnalyticsScreen: ChartNoAxesCombined,
+  FavoritesScreen: Heart,
+  DashboardScreen: ChartNoAxesCombined,
+  SearchScreen: Search,
   NotificationScreen: Bell,
   ProfileScreen: UserRound,
   SettingsScreen: Settings,

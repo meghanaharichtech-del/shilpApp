@@ -21,9 +21,10 @@ export default function LoginScreen({ navigation }) {
       });
       await StorageUtils.setItem('pendingAuth', {
         ...data,
+        authFlow: 'login',
         resendAt: Date.now() + (data.resendAfterSeconds || 60) * 1000
       });
-      navigation.replace('OtpScreen', { email: data.email });
+      navigation.replace('OtpScreen', { email: data.email, authFlow: 'login' });
     } catch (e) {
       setError(apiError(e));
     } finally {

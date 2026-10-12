@@ -18,6 +18,8 @@ import NotificationScreen from '../screens/NotificationScreen';
 import { useNotifications } from '../context/NotificationContext';
 import SettingsScreen from '../screens/SettingsScreen';
 import InAppNotificationBanner from '../components/InAppNotificationBanner';
+import SearchScreen from '../screens/SearchScreen';
+import FavoritesScreen from '../screens/FavoritesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -59,6 +61,8 @@ export default function AppNavigator() {
           <Stack.Screen name="DeleteAccountScreen" component={DeleteAccountScreen} />
           <Stack.Screen name="PropertyDetailScreen" component={PropertyDetailScreen} />
           <Stack.Screen name='NotificationScreen' component={NotificationScreen} />
+          <Stack.Screen name='SearchScreen' component={SearchScreen} />
+          <Stack.Screen name='FavoritesScreen' component={FavoritesScreen} />
         </Stack.Navigator>
       </NavigationContainer>
       <InAppNotificationBanner notification={currentRoute === 'NotificationScreen' ? null : latestNotification} onClose={dismissLatestNotification} onPress={() => {

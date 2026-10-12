@@ -19,7 +19,12 @@ export default function SplashScreen({ navigation }) {
           destination = authDestination(session);
         } else {
           const pending = await StorageUtils.getItem('pendingAuth');
-          destination = pending?.email ? 'OtpScreen' : 'OnboardingScreen1';
+          if (pending?.email && pending.authFlow === 'signup') {
+            destination = 'OtpScreen';
+          } else {
+            await StorageUtils.removeItem('pendingAuth');
+            destination = 'OnboardingScreen1';
+          }
         }
       } finally {
         if (active) navigation.reset({ index: 0, routes: [{ name: destination }] });
