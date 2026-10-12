@@ -1,7 +1,8 @@
+import { REGISTER_API } from "../utils/ApiHelper";
 import React, { useRef, useState } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import AuthLayout, { Field, styles } from '../components/AuthLayout';
-import { brokerRequest, apiError } from '../utils/brokerApi';
+import { apiRequest, apiError } from '../utils/brokerApi';
 import { StorageUtils } from '../utils/StorageUtils';
 export default function SignupScreen({ navigation }) {
   const emailRef = useRef(null);
@@ -24,7 +25,7 @@ export default function SignupScreen({ navigation }) {
     setLoading(true);
     setError('');
     try {
-      const data = await brokerRequest('register', 'post', {
+      const data = await apiRequest(REGISTER_API, 'post', {
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password,

@@ -1,7 +1,8 @@
+import { LOGIN_API } from "../utils/ApiHelper";
 import React, { useState } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import AuthLayout, { Field, styles } from '../components/AuthLayout';
-import { brokerRequest, apiError } from '../utils/brokerApi';
+import { apiRequest, apiError } from '../utils/brokerApi';
 import { StorageUtils } from '../utils/StorageUtils';
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState(''),
@@ -16,7 +17,7 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     setError('');
     try {
-      const data = await brokerRequest('login', 'post', {
+      const data = await apiRequest(LOGIN_API, 'post', {
         email: email.trim().toLowerCase()
       });
       await StorageUtils.setItem('pendingAuth', {

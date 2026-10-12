@@ -1,7 +1,8 @@
+import { PROFILE_API, COMPANY_API } from "../utils/ApiHelper";
 import React, { useEffect, useState } from "react";
 import AuthLayout, { Field } from "../components/AuthLayout";
 import CompanyFields, { validCompany } from "../components/CompanyFields";
-import { brokerRequest, apiError, saveSession } from "../utils/brokerApi";
+import { apiRequest, apiError, saveSession } from "../utils/brokerApi";
 export default function ProfileEditScreen({ navigation }) {
   const [name, setName] = useState(""),
     [email, setEmail] = useState(""),
@@ -13,8 +14,8 @@ export default function ProfileEditScreen({ navigation }) {
     [loaded, setLoaded] = useState(false);
   useEffect(() => {
     Promise.all([
-      brokerRequest("profile", "get", undefined, true),
-      brokerRequest("company", "get", undefined, true),
+      apiRequest(PROFILE_API, "get", undefined, true),
+      apiRequest(COMPANY_API, "get", undefined, true),
     ])
       .then(([data, business]) => {
         setName(data.user.name || "");
@@ -43,8 +44,7 @@ export default function ProfileEditScreen({ navigation }) {
     setLoading(true);
     setError("");
     try {
-      const user = await brokerRequest(
-        "profile",
+      const user = await apiRequest(PROFILE_API,
         "patch",
         {
           name: name.trim(),
@@ -53,8 +53,7 @@ export default function ProfileEditScreen({ navigation }) {
         true,
       );
       await saveSession(user);
-      const data = await brokerRequest(
-        "company",
+      const data = await apiRequest(COMPANY_API,
         "put",
         {
           companyName: company.trim(),

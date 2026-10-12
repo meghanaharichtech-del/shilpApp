@@ -48,7 +48,7 @@ import {
   AlertCircle,
 } from "lucide-react-native";
 import { theme } from "../utils/theme";
-import { BASEURL, PROJECTS_API } from "../utils/ApiHelper";
+import { BASEURL, PROJECT_DETAIL_API, PROJECT_DOCUMENTS_API } from "../utils/ApiHelper";
 import { StorageUtils } from "../utils/StorageUtils";
 import CustomDialog from "../components/CustomDialog";
 import axios from "axios";
@@ -388,8 +388,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
       if (!accessToken || controller.signal.aborted) return;
       const config = { headers: { Authorization: `Bearer ${accessToken}` }, signal: controller.signal };
       const [detail, documents] = await Promise.allSettled([
-        axios.get(`${PROJECTS_API}/${pid}`, config),
-        axios.get(`${PROJECTS_API}/${pid}/documents`, config),
+        axios.get(PROJECT_DETAIL_API(pid), config),
+        axios.get(PROJECT_DOCUMENTS_API(pid), config),
       ]);
       if (controller.signal.aborted) return;
       setProject(prev => ({ ...prev,

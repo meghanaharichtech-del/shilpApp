@@ -1,7 +1,8 @@
+import { VERIFY_OTP_API, RESEND_OTP_API } from "../utils/ApiHelper";
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import AuthLayout, { styles as authStyles } from '../components/AuthLayout';
-import { brokerRequest, apiError, saveSession, authDestination } from '../utils/brokerApi';
+import { apiRequest, apiError, saveSession, authDestination } from '../utils/brokerApi';
 import { StorageUtils } from '../utils/StorageUtils';
 import { useNotifications } from '../context/NotificationContext';
 import { theme } from '../utils/theme';
@@ -42,7 +43,7 @@ export default function OtpScreen({ navigation, route }) {
     setLoading(true);
     setError('');
     try {
-      const data = await brokerRequest('verify-otp', 'post', {
+      const data = await apiRequest(VERIFY_OTP_API, 'post', {
         email,
         otp
       });
@@ -63,7 +64,7 @@ export default function OtpScreen({ navigation, route }) {
     setResending(true);
     setError('');
     try {
-      const data = await brokerRequest('resend-otp', 'post', {
+      const data = await apiRequest(RESEND_OTP_API, 'post', {
         email
       });
       const resendAt = Date.now() + (data.resendAfterSeconds || 60) * 1000;

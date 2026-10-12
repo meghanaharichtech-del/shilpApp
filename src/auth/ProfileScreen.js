@@ -1,3 +1,4 @@
+import { PROFILE_API } from "../utils/ApiHelper";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -20,7 +21,7 @@ import {
   ShieldAlert,
   UserRound,
 } from "lucide-react-native";
-import { brokerRequest, saveSession } from "../utils/brokerApi";
+import { apiRequest, saveSession } from "../utils/brokerApi";
 import { StorageUtils } from "../utils/StorageUtils";
 import { theme } from "../utils/theme";
 
@@ -51,7 +52,7 @@ export default function ProfileScreen({ navigation }) {
     else setLoading(true);
     setError("");
     try {
-      const data = await brokerRequest("profile", "get", undefined, true);
+      const data = await apiRequest(PROFILE_API, "get", undefined, true);
       const normalized = {
         ...data.user,
         phoneNumber: data.user?.phoneNumber || data.user?.phone || null,

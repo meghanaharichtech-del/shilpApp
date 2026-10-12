@@ -1,7 +1,8 @@
+import { PROFILE_API } from "../utils/ApiHelper";
 import React, { useEffect } from 'react';
 import { ImageBackground } from 'react-native';
 import { StorageUtils } from '../utils/StorageUtils';
-import { authDestination, brokerRequest, saveSession } from '../utils/brokerApi';
+import { authDestination, apiRequest, saveSession } from '../utils/brokerApi';
 
 export default function SplashScreen({ navigation }) {
   useEffect(() => {
@@ -12,7 +13,7 @@ export default function SplashScreen({ navigation }) {
         let session = await StorageUtils.getItem('userData');
         if (session?.token) {
           try {
-            session = await saveSession(await brokerRequest('profile', 'get', undefined, true));
+            session = await saveSession(await apiRequest(PROFILE_API, 'get', undefined, true));
           } catch {
             session = await StorageUtils.getItem('userData');
           }

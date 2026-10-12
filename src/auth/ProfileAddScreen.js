@@ -1,8 +1,9 @@
+import { COMPANY_API } from "../utils/ApiHelper";
 import React, { useEffect, useState } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import AuthLayout, { styles } from '../components/AuthLayout';
 import CompanyFields, { validCompany } from '../components/CompanyFields';
-import { brokerRequest, apiError, saveSession, authDestination } from '../utils/brokerApi';
+import { apiRequest, apiError, saveSession, authDestination } from '../utils/brokerApi';
 import { StorageUtils } from '../utils/StorageUtils';
 export default function ProfileAddScreen({ navigation }) {
   const [name, setName] = useState(''),
@@ -11,7 +12,7 @@ export default function ProfileAddScreen({ navigation }) {
     [loading, setLoading] = useState(true),
     [exists, setExists] = useState(false);
   useEffect(() => {
-    brokerRequest('company', 'get', undefined, true).then(data => {
+    apiRequest(COMPANY_API, 'get', undefined, true).then(data => {
       setName(data.company?.companyName || '');
       setLogo(data.company?.logo || '');
       setExists(!!data.company);
@@ -26,7 +27,7 @@ export default function ProfileAddScreen({ navigation }) {
     setLoading(true);
     setError('');
     try {
-      const data = await brokerRequest('company', exists ? 'put' : 'post', {
+      const data = await apiRequest(COMPANY_API, exists ? 'put' : 'post', {
         companyName: name.trim(),
         logo: logo.trim()
       }, true);

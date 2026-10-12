@@ -1,3 +1,4 @@
+import { DASHBOARD_API } from "../utils/ApiHelper";
 import FavoriteHeartButton from '../components/FavoriteHeartButton';
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -71,7 +72,7 @@ export default function DashboardScreen({ navigation }) {
   const [error, setError] = useState("");
   const load = useCallback(
     () =>
-      apiRequest("api/dashboard/home", "get", undefined, true)
+      apiRequest(DASHBOARD_API, "get", undefined, true)
         .then((data) => {
           setDashboard(data);
           setError("");

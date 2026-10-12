@@ -1,10 +1,11 @@
+import { PROFILE_API } from "../utils/ApiHelper";
 import { useFavorites } from '../context/FavoritesContext';
 import React, { useRef, useState } from 'react';
 import { Keyboard, Text, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthLayout, { Field, styles } from '../components/AuthLayout';
 import CustomDialog from '../components/CustomDialog';
-import { apiError, brokerRequest } from '../utils/brokerApi';
+import { apiError, apiRequest } from '../utils/brokerApi';
 import { useNotifications } from '../context/NotificationContext';
 export default function DeleteAccountScreen({ navigation }) {
   const { clearFavorites } = useFavorites();
@@ -32,7 +33,7 @@ export default function DeleteAccountScreen({ navigation }) {
     try {
       // This endpoint also returns 401 for an incorrect password. Keep the
       // session so the user can correct it instead of being logged out.
-      await brokerRequest('profile', 'delete', {
+      await apiRequest(PROFILE_API, 'delete', {
         password
       }, true, {
         keepSessionOnUnauthorized: true
