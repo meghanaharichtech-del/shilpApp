@@ -41,6 +41,7 @@ import { theme } from "../utils/theme";
 import { StorageUtils } from "../utils/StorageUtils";
 import NotificationBadge from "../components/NotificationBadge";
 import { useNotifications } from "../context/NotificationContext";
+console.log("----- baseurl",BASEURL);
 
 const FALLBACK_IMAGE = require("../assets/defaultnoimg.png");
 const BANNER_IMAGES = [
@@ -155,7 +156,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
             Authorization: `Bearer ${accessToken}`,
           },
         });
-        // console.log("--------", response);
+        console.log("--------", accessToken);
 
         if (!response.data?.success)
           throw new Error("Unable to load projects.");

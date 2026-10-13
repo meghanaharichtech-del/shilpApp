@@ -17,14 +17,14 @@ export default function OtpScreen({ navigation, route }) {
     [error, setError] = useState(''),
     [loading, setLoading] = useState(false),
     [resending, setResending] = useState(false),
-    [until, setUntil] = useState(() => Date.now() + 60000),
-    [seconds, setSeconds] = useState(60);
+    [until, setUntil] = useState(() => Date.now()),
+    [seconds, setSeconds] = useState(0);
   useEffect(() => {
     StorageUtils.getItem('pendingAuth').then(data => {
       if (data) {
         setEmail(data.email);
         setAuthFlow(data.authFlow === 'signup' ? 'signup' : 'login');
-        setUntil(data.resendAt || Date.now());
+        setUntil(Date.now());
       }
     });
   }, []);
@@ -67,7 +67,7 @@ export default function OtpScreen({ navigation, route }) {
       const data = await apiRequest(RESEND_OTP_API, 'post', {
         email
       });
-      const resendAt = Date.now() + (data.resendAfterSeconds || 60) * 1000;
+      const resendAt = Date.now() + (data.resendAfterSeconds ?? 0) * 1000;
       await StorageUtils.setItem('pendingAuth', {
         ...data,
         resendAt

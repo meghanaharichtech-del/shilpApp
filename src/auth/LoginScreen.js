@@ -1,4 +1,4 @@
-import { LOGIN_API } from "../utils/ApiHelper";
+import { BASEURL, LOGIN_API } from "../utils/ApiHelper";
 import React, { useState } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import AuthLayout, { Field, styles } from '../components/AuthLayout';
@@ -20,10 +20,14 @@ export default function LoginScreen({ navigation }) {
       const data = await apiRequest(LOGIN_API, 'post', {
         email: email.trim().toLowerCase()
       });
+      console.log("----- login url", LOGIN_API);
+      
+      console.log("------- login eror", data);
+      
       await StorageUtils.setItem('pendingAuth', {
         ...data,
         authFlow: 'login',
-        resendAt: Date.now() + (data.resendAfterSeconds || 60) * 1000
+        resendAt: Date.now() + (data.resendAfterSeconds ?? 0) * 1000
       });
       navigation.replace('OtpScreen', { email: data.email, authFlow: 'login' });
     } catch (e) {

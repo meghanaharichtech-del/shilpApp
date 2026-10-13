@@ -108,17 +108,25 @@ export default function FavoritesScreen({ navigation }) {
                     </Text>
                   </View>
                   <View style={styles.categoryPill}>
-                              <Text style={styles.categoryText}>
-                                {item.projectType || item.category || "Project"}
-                              </Text>
-                            </View>
-                  <View style={{flexDirection:"row",justifyContent:"space-between",width:"100%"}}>
-                    <View> <Text style={styles.priceText}>
-                      {price != null
-                        ? `₹ ${Number(price).toLocaleString("en-IN")}`
-                        : "₹ 45 Lakh"}
-                    </Text></View>
-                      <FavoriteHeartButton
+                    <Text style={styles.categoryText}>
+                      {item.projectType || item.category || "Project"}
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      width: "100%",
+                    }}
+                  >
+                    <View>
+                      <Text style={styles.priceText}>
+                        {price != null
+                          ? `₹ ${Number(price).toLocaleString("en-IN")}`
+                          : "₹ 45 Lakh"}
+                      </Text>
+                    </View>
+                    <FavoriteHeartButton
                       project={item}
                       style={styles.heartButton}
                     />
@@ -195,15 +203,17 @@ const styles = StyleSheet.create({
     // alignSelf: "stretch",
     // borderRadius: 7,
     // backgroundColor: theme.colors.borderlightgraycolour,
-    borderRadius: 8, overflow: "hidden", width: "40%",
-    height:112
+    borderRadius: 8,
+    overflow: "hidden",
+    width: "40%",
+    height: 112,
   },
   info: {
     width: "60%",
     justifyContent: "space-between",
     gap: 6,
     paddingVertical: 2,
-    paddingRight:5
+    paddingRight: 5,
   },
   name: {
     fontFamily: theme.fonts.semiBold,
@@ -216,7 +226,8 @@ const styles = StyleSheet.create({
     color: theme.colors.subText,
     fontFamily: theme.fonts.regular,
     fontSize: 12,
-  },  categoryPill: {
+  },
+  categoryPill: {
     alignSelf: "flex-start",
     backgroundColor: "#FFF1E2",
     borderRadius: 4,
@@ -235,7 +246,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 4,
-    flex:1
+    flex: 1,
   },
   priceText: {
     flex: 1,
