@@ -9,10 +9,11 @@ function runtime({ header = '%PDF-', fail = false } = {}) {
     constructor(folder, name) { target = this; this.name = name; this.uri = `file:///documents/${name}`; this.exists = false; this.size = 0; }
     static async downloadFileAsync(url, file, options) { calls.push(['download', url, options]); file.exists = true; file.size = 30; if (fail) throw new Error('Network failed'); return file; }
     open() { return { readBytes: () => Uint8Array.from([...header].map(c => c.charCodeAt(0))), close() { calls.push(['close']); } }; }
+    move(file) { this.name = file.name; this.uri = file.uri; }
     delete() { this.exists = false; calls.push(['delete']); }
   }
   const Sharing = { isAvailableAsync: async () => true, shareAsync: async (...args) => calls.push(['share', ...args]) };
-  const api = new Function('Directory', 'File', 'Paths', 'Sharing', 'Linking', 'Platform', `${source}\nreturn { downloadDocument, loadDocumentFile, documentFileName };`)(Directory, File, { document: 'file:///documents' }, Sharing, {}, { OS: 'android' });
+  const api = new Function('resolveMediaUrl', 'Directory', 'File', 'Paths', 'Sharing', 'Linking', 'Platform', `${source}\nreturn { downloadDocument, loadDocumentFile, documentFileName };`)(value => value?.replace("http://localhost:3000", "http://192.168.3.164:3000"), Directory, File, { document: 'file:///documents' }, Sharing, {}, { OS: 'android' });
   return { ...api, calls, target: () => target };
 }
 test('downloads API URL to persistent local PDF and exports with PDF MIME', async () => {
@@ -40,4 +41,11 @@ test('PDF preview loads the document without opening the save/share sheet', asyn
   const file = await r.loadDocumentFile('https://storage.test/brochure.pdf', 'Brochure');
   assert.equal(file.uri, r.target().uri);
   assert.ok(!r.calls.some(call => call[0] === 'share'));
+});
+
+test('legacy extensionless images are identified by bytes and renamed for preview', async () => {
+  const r = runtime({ header: String.fromCharCode(137) + 'PNG\r\n' });
+  const file = await r.loadDocumentFile('http://localhost:3000/api/media/6ace284addf080ed47c89c8f', 'Legal');
+  assert.ok(file.name.endsWith('.png'));
+  assert.ok(r.calls.find(call => call[0] === 'download')[1].startsWith('http://192.168.3.164:3000/'));
 });

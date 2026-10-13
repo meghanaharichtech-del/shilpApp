@@ -1,5 +1,6 @@
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import FavoriteHeartOverlay from "../components/FavoriteHeartOverlay";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -16,7 +17,85 @@ import { ArrowLeft, Heart, MapPin } from "lucide-react-native";
 import { useFavorites } from "../context/FavoritesContext";
 import FavoriteHeartButton from "../components/FavoriteHeartButton";
 import { theme } from "../utils/theme";
-import { BASEURL } from "../utils/ApiHelper";
+
+const FALLBACK_IMAGE = require("../assets/defaultnoimg.png");
+
+const firstImage = (project) =>
+  project?.bannerImage ||
+  project?.gallery?.[0] ||
+  project?.elevationGallery?.[0] ||
+  project?.project?.bannerImage ||
+  project?.project?.gallery?.[0] ||
+  project?.project?.elevationGallery?.[0] ||
+  null;
+
+const imageSource = (imagePath) => {
+  const uri = resolveMediaUrl(imagePath);
+  return uri ? { uri } : FALLBACK_IMAGE;
+};
+
+function FavoriteCard({ item, navigation }) {
+  const [failedUrl, setFailedUrl] = useState(null);
+  const imageUrl = firstImage(item);
+  const isFailed = failedUrl === imageUrl;
+  const price =
+    item.plotDetails?.price ?? item.configurations?.[0]?.price;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      onPress={() =>
+        navigation.navigate("PropertyDetailScreen", { project: item })
+      }
+    >
+      <Image
+        source={isFailed || !imageUrl ? FALLBACK_IMAGE : imageSource(imageUrl)}
+        style={styles.image}
+        defaultSource={FALLBACK_IMAGE}
+        resizeMode="cover"
+        onError={() => setFailedUrl(imageUrl)}
+      />
+      <View style={styles.info}>
+        <Text numberOfLines={2} style={styles.name}>
+          {item.name || "Property"}
+        </Text>
+        <View style={styles.location}>
+          <MapPin size={14} color="#777777" />
+          <Text numberOfLines={1} style={styles.address}>
+            {item.address || "Location pending"}
+          </Text>
+        </View>
+        <View style={styles.categoryPill}>
+          <Text style={styles.categoryText}>
+            {item.projectType || item.category || "Project"}
+          </Text>
+        </View>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            width: "100%",
+          }}
+        >
+          <View>
+            <Text style={styles.priceText}>
+              {price != null
+                ? `₹ ${Number(price).toLocaleString("en-IN")}`
+                : "₹ 45 Lakh"}
+            </Text>
+          </View>
+          <FavoriteHeartButton
+            project={item}
+            style={styles.heartButton}
+          />
+        </View>
+      </View>
+      <FavoriteHeartOverlay project={item} />
+    </Pressable>
+  );
+}
+
 export default function FavoritesScreen({ navigation }) {
   const { projects, loading, loaded, error, refreshFavorites } = useFavorites();
   useFocusEffect(
@@ -70,83 +149,9 @@ export default function FavoritesScreen({ navigation }) {
               </Text>
             </View>
           }
-          renderItem={({ item }) => {
-            const image = item.bannerImage || item.gallery?.[0];
-            const price =
-              item.plotDetails?.price ?? item.configurations?.[0]?.price;
-            return (
-              <Pressable
-                accessibilityRole="button"
-                style={({ pressed }) => [
-                  styles.card,
-                  pressed && styles.pressed,
-                ]}
-                onPress={() =>
-                  navigation.navigate("PropertyDetailScreen", { project: item })
-                }
-              >
-                <Image
-                  source={
-                    image
-                      ? {
-                          uri: /^https?:\/\//.test(image)
-                            ? image
-                            : `${BASEURL.replace(/\/$/, "")}/${image.replace(/^\//, "")}`,
-                        }
-                      : require("../assets/defaultnoimg.png")
-                  }
-                  style={styles.image}
-                />
-                <View style={styles.info}>
-                  <Text numberOfLines={2} style={styles.name}>
-                    {item.name || "Property"}
-                  </Text>
-                  <View style={styles.location}>
-                    <MapPin size={14} color="#777777" />
-                    <Text numberOfLines={1} style={styles.address}>
-                      {item.address || "Location pending"}
-                    </Text>
-                  </View>
-                  <View style={styles.categoryPill}>
-                    <Text style={styles.categoryText}>
-                      {item.projectType || item.category || "Project"}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      width: "100%",
-                    }}
-                  >
-                    <View>
-                      <Text style={styles.priceText}>
-                        {price != null
-                          ? `₹ ${Number(price).toLocaleString("en-IN")}`
-                          : "₹ 45 Lakh"}
-                      </Text>
-                    </View>
-                    <FavoriteHeartButton
-                      project={item}
-                      style={styles.heartButton}
-                    />
-                  </View>
-                  {/* <View style={styles.price}>
-                    <Text style={styles.priceText}>
-                      {price != null
-                        ? `₹ ${Number(price).toLocaleString("en-IN")}`
-                        : "₹ 45 Lakh"}
-                    </Text>
-                    <FavoriteHeartButton
-                      project={item}
-                      style={styles.heartButton}
-                    />
-                  </View> */}
-                </View>
-                <FavoriteHeartOverlay project={item} />
-              </Pressable>
-            );
-          }}
+          renderItem={({ item }) => (
+            <FavoriteCard item={item} navigation={navigation} />
+          )}
         />
       )}
     </SafeAreaView>

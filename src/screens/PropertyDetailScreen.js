@@ -1,3 +1,6 @@
+import PropertyContact from '../components/PropertyContact';
+import ImagePreview from '../components/ImagePreview';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import FavoriteHeartButton from '../components/FavoriteHeartButton';
 import React, {
   useRef,
@@ -32,10 +35,10 @@ import {
   Images,
   Video,
   LayoutGrid,
+  Building2,
+  Ruler,
+  BedDouble,
   FileText,
-  ExternalLink,
-  FileDown,
-  Download,
   HardHat,
   Send,
   ShieldCheck,
@@ -48,7 +51,7 @@ import {
   AlertCircle,
 } from "lucide-react-native";
 import { theme } from "../utils/theme";
-import { BASEURL, PROJECT_DETAIL_API, PROJECT_DOCUMENTS_API } from "../utils/ApiHelper";
+import { PROJECT_DETAIL_API, PROJECT_DOCUMENTS_API } from "../utils/ApiHelper";
 import { StorageUtils } from "../utils/StorageUtils";
 import CustomDialog from "../components/CustomDialog";
 import axios from "axios";
@@ -133,18 +136,11 @@ const extractPincode = (project) => {
 };
 
 const imageSource = (imagePath) => {
-  if (!imagePath || typeof imagePath !== "string") return FALLBACK_IMAGE;
-  if (/^https?:\/\//i.test(imagePath)) return { uri: imagePath };
-  return {
-    uri: `${BASEURL.replace(/\/$/, "")}/${imagePath.replace(/^\//, "")}`,
-  };
+  const uri = resolveMediaUrl(imagePath);
+  return uri ? { uri } : FALLBACK_IMAGE;
 };
 
-const buildFullUrl = (path) => {
-  if (!path || typeof path !== "string") return null;
-  if (/^https?:\/\//i.test(path)) return path;
-  return `${BASEURL.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
-};
+const buildFullUrl = resolveMediaUrl;
 
 const statusLabel = (status) => {
   if (!status) return "Available";
@@ -185,7 +181,7 @@ const MenuItemRow = ({ icon: Icon, label, subtitle, isLast, onPress }) => (
 
 
 // ─── Bottom Sheet Modal ────────────────────────────────────────────────────────
-const BottomSheet = ({ visible, onClose, title, subtitle, children, document, onCloseDocument }) => (
+const BottomSheet = ({ visible, onClose, title, subtitle, children, expanded = false }) => (
   <Modal
     visible={visible}
     transparent
@@ -196,7 +192,7 @@ const BottomSheet = ({ visible, onClose, title, subtitle, children, document, on
     <Pressable style={styles.modalOverlay} onPress={onClose}>
       <Pressable style={styles.modalBackdrop} onPress={onClose} />
       <View
-        style={styles.modalSheet}
+        style={[styles.modalSheet, expanded && styles.documentSheet]}
         onStartShouldSetResponder={() => true}
       >
         {/* Drag Handle */}
@@ -229,10 +225,10 @@ const BottomSheet = ({ visible, onClose, title, subtitle, children, document, on
           contentContainerStyle={styles.modalBodyContent}
           showsVerticalScrollIndicator={false}
           bounces={false}
-          scrollEnabled={!document}
+          nestedScrollEnabled
           keyboardShouldPersistTaps="handled"
         >
-          {visible && document ? <PdfDocumentViewer key={document.url} document={document} onBack={onCloseDocument} height={SCREEN_HEIGHT * 0.55} /> : children}
+          {visible ? children : null}
         </ScrollView>
       </View>
     </Pressable>
@@ -253,54 +249,40 @@ const CategoryChip = ({ label, count, active, onPress }) => (
 );
 
 // ─── Document Row ──────────────────────────────────────────────────────────────
-const DocumentRow = ({ icon: Icon, title, subtitle, url, isLast, onView }) => {
-  const [dialog, setDialog] = useState(null);
-  const hasUrl = Boolean(
-    url && typeof url === "string" && url.trim().length > 0,
-  );
+const DocumentRow = ({ title, url }) => (
+  <View style={styles.inlineDocument}>
+    <Text style={styles.inlineDocumentTitle}>{title}</Text>
+    {url && /\.(png|jpe?g|webp)(?:[?#]|$)/i.test(url) ? <ImagePreview uri={url} title={title}><Image source={{ uri: url }} style={{ height: 280, width: '100%' }} resizeMode="contain" /><Text style={styles.menuSubtitle}>Tap to view full image</Text></ImagePreview> : url ? <PdfDocumentViewer key={`${url}-${title}`} document={{ url, title }} height={300} /> : <Text style={styles.emptyModalText}>Document not uploaded yet</Text>}
+  </View>
+);
 
-  const handlePress = () => {
-    if (hasUrl) onView({ url, title });
-    else setDialog({ title: "Document Pending", message: `The ${title} has not been uploaded yet for this project.` });
-  };
-
-  return (
-    <>
-      <Pressable
-        style={[styles.docRow, !isLast && styles.docRowBorder]}
-        onPress={handlePress}
-      >
-        <View style={styles.docIconWrap}>
-          <Icon size={20} color="#121212" strokeWidth={1.8} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.docTitle}>{title}</Text>
-          {subtitle ? <Text style={styles.docSubtitle}>{subtitle}</Text> : null}
-        </View>
-        <View style={styles.docActionWrap}>
-          {hasUrl ? (
-            <View style={styles.docBadgeAvailable}>
-              <Text style={styles.docBadgeTextAvailable}>View</Text>
-              <ExternalLink size={13} color="#C96A10" />
-            </View>
-          ) : (
-            <View style={styles.docBadgePending}>
-              <Text style={styles.docBadgeTextPending}>Pending</Text>
-            </View>
-          )}
-        </View>
-      </Pressable>
-      <CustomDialog
-        visible={Boolean(dialog)}
-        title={dialog?.title}
-        message={dialog?.message}
-        onClose={() => setDialog(null)}
-      />
-    </>
-  );
+// Compact, data-backed unit cards stay on the project page above resources.
+const UnitDetails = ({ project }) => {
+  const floors = Array.isArray(project?.floorAvailability) ? project.floorAvailability : [];
+  const configurations = Array.isArray(project?.configurations) ? project.configurations : [];
+  const rows = floors.length ? floors : configurations;
+  if (!rows.length) return null;
+  return <View style={styles.unitDetails}>
+    <Text style={styles.sectionTitle}>Floor availability</Text>
+    {rows.map((row, index) => {
+      const facts = [
+        { label: 'Floor', value: row.floor, icon: Building2 },
+        { label: 'Type', value: row.configuration || row.name, icon: BedDouble },
+        { label: 'Units', value: row.totalUnits, icon: LayoutGrid },
+        { label: 'Available', value: row.availableUnits, icon: CheckCircle2 },
+        { label: 'Sqft', value: row.areaSqFt ?? row.area ?? row.sqft, icon: Ruler },
+      ].filter(fact => fact.value != null && String(fact.value).trim() !== '');
+      if (!facts.length) return null;
+      return <View key={`unit-${index}`} style={styles.unitFacts}>
+        {facts.map(({ label, value, icon: Icon }) => <View key={label} style={styles.unitFact} accessibilityLabel={`${label}: ${value}`}>
+          <Icon size={22} color="#777777" strokeWidth={1.6} />
+          <Text style={styles.unitFactValue}>{value}</Text>
+          <Text style={styles.unitFactLabel}>{label}</Text>
+        </View>)}
+      </View>;
+    })}
+  </View>;
 };
-
-
 
 // ─── Construction Timeline Item ────────────────────────────────────────────────
 const TimelineItem = ({ update, isLast }) => {
@@ -340,6 +322,10 @@ const TimelineItem = ({ update, isLast }) => {
           </Text>
         ) : null}
         {desc ? <Text style={styles.timelineDesc}>{desc}</Text> : null}
+        {(update.images || []).map((image, index) => (
+          <ImagePreview key={`work-image-${index}`} uri={image} title={title}><Image source={imageSource(image)}
+            style={{ width: "100%", height: 180, borderRadius: 8, marginTop: 10 }} resizeMode="contain" /></ImagePreview>
+        ))}
         {progress != null && (
           <View style={styles.progressWrap}>
             <View style={styles.progressTrack}>
@@ -404,8 +390,6 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
   // Modal states
   const [activeModal, setActiveModal] = useState(null);
-  const [pdfDocument, setPdfDocument] = useState(null);
-  const openPdf = (document) => setPdfDocument(document);
   const [resourceError, setResourceError] = useState(null);
   const openResource = async (url) => {
     if (!url) return;
@@ -414,9 +398,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
   };
   const [galleryFilter, setGalleryFilter] = useState("all");
 
-  const openModal = (name) => { setPdfDocument(null); setActiveModal(name); };
+  const openModal = (name) => { setActiveModal(name); };
   const closeModal = () => {
-    setPdfDocument(null);
     setActiveModal(null);
     setGalleryFilter("all");
   };
@@ -603,11 +586,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
   const walkthroughUrl = resources.walkthrough;
 
   // Plot / inventory data
-  const plots =
-    project?.plotDetails || project?.plots || project?.inventory || null;
   const plotLayout =
     project?.plotLayout || project?.layoutImage || project?.masterPlan || null;
-  const configurations = project?.configurations || [];
 
   // Legal documents normalization
   const legalDocs = useMemo(() => {
@@ -756,7 +736,9 @@ const PropertyDetailScreen = ({ navigation, route }) => {
     project?.constructionUpdates ||
     project?.constructionProgress ||
     project?.updates ||
-    [];
+    (project?.workUpdates?.images || []).map((image, index) => ({
+      title: `Work update ${index + 1}`, images: [image],
+    }));
 
   // Social media creatives
   const creatives =
@@ -769,14 +751,14 @@ const PropertyDetailScreen = ({ navigation, route }) => {
   const renderGalleryGrid = () => (
     <View style={styles.galleryGrid}>
       {filteredGallery.map((img, idx) => (
-        <View key={`gal-${idx}`} style={styles.galleryThumb}>
+        <ImagePreview key={`gal-${idx}`} uri={img.url} title={`Gallery image ${idx + 1}`} style={styles.galleryThumb}>
           <Image
             source={imageSource(img.url)}
             style={styles.galleryThumbImg}
             resizeMode="cover"
             defaultSource={FALLBACK_IMAGE}
           />
-        </View>
+        </ImagePreview>
       ))}
       {filteredGallery.length === 0 && (
         <View style={styles.emptyModalState}>
@@ -787,39 +769,9 @@ const PropertyDetailScreen = ({ navigation, route }) => {
     </View>
   );
 
-  const renderBrochureContent = () => (
-    <View>
-      {brochureUrl ? (
-        <Pressable
-          style={styles.brochureCard}
-          onPress={() => openPdf({ url: brochureUrl, title: `${projectName} - Brochure` })}
-        >
-          <View style={styles.brochureIconWrap}>
-            <FileDown size={28} color="#C96A10" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.brochureTitle}>
-              {projectName} - Brochure.pdf
-            </Text>
-            <Text style={styles.brochureSubtitle}>
-              Tap to download or view the project brochure
-            </Text>
-          </View>
-          <View style={styles.downloadBtn}>
-            <Download size={18} color="#FFFFFF" />
-          </View>
-        </Pressable>
-      ) : (
-        <View style={styles.emptyModalState}>
-          <BookOpen size={32} color="#CCCCCC" />
-          <Text style={styles.emptyModalText}>Brochure not available yet</Text>
-          <Text style={styles.emptyModalSubtext}>
-            The project brochure will be uploaded soon
-          </Text>
-        </View>
-      )}
-    </View>
-  );
+  const renderBrochureContent = () => brochureUrl
+    ? <DocumentRow title={`${projectName} — Brochure`} url={brochureUrl} />
+    : <Text style={styles.emptyModalText}>Brochure not available yet</Text>;
 
   const renderWalkthroughContent = () => (
     <View>
@@ -866,146 +818,17 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
   const renderPlotContent = () => (
     <View>
-      {/* Plot layout image */}
-      {plotLayout && !/\.pdf(?:[?#]|$)/i.test(typeof plotLayout === "string" ? plotLayout : plotLayout?.url || "") && (
-        <View style={styles.plotLayoutWrap}>
-          <Image
-            source={imageSource(
-              typeof plotLayout === "string" ? plotLayout : plotLayout?.url,
-            )}
-            style={styles.plotLayoutImg}
-            resizeMode="contain"
-            defaultSource={FALLBACK_IMAGE}
-          />
-        </View>
-      )}
-
-      {plotLayout && <DocumentRow onView={openPdf} icon={FileText} title="Master plan" url={buildFullUrl(typeof plotLayout === "string" ? plotLayout : plotLayout?.url)} />}
-      {(project?.floorPlans || []).map((plan, index) => <DocumentRow onView={openPdf} key={`floor-plan-${index}`} icon={FileText} title={plan.title || `Floor plan ${index + 1}`} url={buildFullUrl(plan.pdf || plan.image)} />)}
-
-      {/* Configurations / Plot sizes */}
-      {configurations.length > 0 && (
-        <View style={styles.configList}>
-          <Text style={styles.configHeading}>Available Configurations</Text>
-          {configurations.map((config, idx) => (
-            <View
-              key={`config-${idx}`}
-              style={[
-                styles.configItem,
-                idx < configurations.length - 1 && styles.configItemBorder,
-              ]}
-            >
-              <View style={styles.configIconWrap}>
-                <LayoutGrid size={18} color="#C96A10" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.configTitle}>
-                  {config.name ||
-                    config.type ||
-                    config.size ||
-                    `Config ${idx + 1}`}
-                </Text>
-                {config.areaSqFt || config.area || config.sqft ? (
-                  <Text style={styles.configSub}>
-                    {config.areaSqFt || config.area || config.sqft}
-                    {config.unit || " sq.ft."}
-                  </Text>
-                ) : null}
-              </View>
-              {config.price ? (
-                <Text style={styles.configPrice}>
-                  ₹{" "}
-                  {Number(config.price) >= 100000
-                    ? `${(Number(config.price) / 100000).toFixed(
-                        Number(config.price) % 100000 ? 2 : 0,
-                      )} L`
-                    : Number(config.price).toLocaleString("en-IN")}
-                </Text>
-              ) : null}
-              {config.status && (
-                <View
-                  style={[
-                    styles.plotStatusPill,
-                    {
-                      backgroundColor:
-                        config.status === "available" ? "#E8F5E9" : "#FFF3E0",
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.plotStatusText,
-                      {
-                        color:
-                          config.status === "available" ? "#2E7D32" : "#E65100",
-                      },
-                    ]}
-                  >
-                    {config.status.charAt(0).toUpperCase() +
-                      config.status.slice(1)}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Plot details */}
-      {plots && typeof plots === "object" && !Array.isArray(plots) && (
-        <View style={styles.plotDetailsCard}>
-          {plots.totalPlots && (
-            <View style={styles.plotDetailRow}>
-              <Text style={styles.plotDetailLabel}>Total Plots</Text>
-              <Text style={styles.plotDetailValue}>{plots.totalPlots}</Text>
-            </View>
-          )}
-          {plots.availablePlots != null && (
-            <View style={styles.plotDetailRow}>
-              <Text style={styles.plotDetailLabel}>Available</Text>
-              <Text style={[styles.plotDetailValue, { color: "#2E7D32" }]}>
-                {plots.availablePlots}
-              </Text>
-            </View>
-          )}
-          {plots.soldPlots != null && (
-            <View style={styles.plotDetailRow}>
-              <Text style={styles.plotDetailLabel}>Sold</Text>
-              <Text style={[styles.plotDetailValue, { color: "#E65100" }]}>
-                {plots.soldPlots}
-              </Text>
-            </View>
-          )}
-          {(plots.pricePerSqFt || plots.price) && (
-            <View style={styles.plotDetailRow}>
-              <Text style={styles.plotDetailLabel}>Starting Price</Text>
-              <Text style={styles.plotDetailValue}>
-                ₹ {plots.pricePerSqFt || plots.price}
-                {plots.pricePerSqFt ? " /sq.ft." : ""}
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {!plotLayout && configurations.length === 0 && !plots && (
-        <View style={styles.emptyModalState}>
-          <LayoutGrid size={32} color="#CCCCCC" />
-          <Text style={styles.emptyModalText}>Plot details coming soon</Text>
-          <Text style={styles.emptyModalSubtext}>
-            Availability information will be updated shortly
-          </Text>
-        </View>
-      )}
+      {plotLayout && <DocumentRow title="Master plan" url={buildFullUrl(typeof plotLayout === "string" ? plotLayout : plotLayout?.url)} />}
+      {(project?.floorPlans || []).map((plan, index) => <DocumentRow key={`floor-plan-${index}`} title={plan.title || `Floor plan ${index + 1}`} url={buildFullUrl(plan.pdf || plan.image)} />)}
     </View>
   );
 
   const renderLegalContent = () => (
     <View>
-      {project?.factSheet?.fileUrl && <DocumentRow onView={openPdf} icon={FileText} title={project.factSheet.title || "Fact sheet"} url={buildFullUrl(project.factSheet.fileUrl)} />}
-      {project?.brokeragePolicy?.pdfUrl && <DocumentRow onView={openPdf} icon={FileText} title="Brokerage policy" url={buildFullUrl(project.brokeragePolicy.pdfUrl)} />}
+      {project?.factSheet?.fileUrl && <DocumentRow icon={FileText} title={project.factSheet.title || "Fact sheet"} url={buildFullUrl(project.factSheet.fileUrl)} />}
+      {project?.brokeragePolicy?.pdfUrl && <DocumentRow icon={FileText} title="Brokerage policy" url={buildFullUrl(project.brokeragePolicy.pdfUrl)} />}
       {legalDocs.map((doc, idx) => (
-        <DocumentRow onView={openPdf}
+        <DocumentRow
           key={`doc-${idx}`}
           icon={doc.type === "rera" ? ShieldCheck : FileText}
           title={doc.title}
@@ -1049,13 +872,11 @@ const PropertyDetailScreen = ({ navigation, route }) => {
             const caption =
               typeof item === "string" ? null : item?.title || item?.caption;
             return (
-              <Pressable
+              <ImagePreview
+                uri={url}
+                title={caption || 'Creative'}
                 key={`cr-${idx}`}
                 style={styles.creativeThumb}
-                onPress={() => {
-                  const fullUrl = buildFullUrl(url);
-                  if (fullUrl) Linking.openURL(fullUrl).catch(() => {});
-                }}
               >
                 <Image
                   source={imageSource(url)}
@@ -1068,7 +889,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
                     {caption}
                   </Text>
                 )}
-              </Pressable>
+              </ImagePreview>
             );
           })}
         </View>
@@ -1095,7 +916,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         >
           <ArrowLeft size={22} color="#191919" />
         </Pressable>
-        <Text style={styles.headerTitle}>SHILP</Text>
+        <Text style={styles.headerTitle} numberOfLines={2} accessibilityRole="header">{projectName}</Text>
         <View style={styles.headerRight}>
           <FavoriteHeartButton project={project} style={styles.headerBtn} />
           <Pressable style={styles.headerBtn} hitSlop={10}>
@@ -1121,14 +942,14 @@ const PropertyDetailScreen = ({ navigation, route }) => {
             decelerationRate="fast"
           >
             {carouselImages.map((img, index) => (
-              <View key={`img-${index}`} style={styles.imageSlide}>
+              <ImagePreview key={`img-${index}`} uri={img} style={styles.imageSlide}>
                 <Image
                   source={imageSource(img)}
                   style={styles.carouselImage}
                   resizeMode="cover"
                   defaultSource={FALLBACK_IMAGE}
                 />
-              </View>
+              </ImagePreview>
             ))}
           </ScrollView>
 
@@ -1197,6 +1018,10 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
         {resources.directions && <Pressable style={styles.locationRow} accessibilityRole="link" onPress={() => openResource(resources.directions)}><MapPin size={18} color="#C96A10" /><Text style={styles.locationText}>Open map · {location || "Get directions"}</Text></Pressable>}
 
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryLabel}>{project?.projectType || project?.category || 'Project'}</Text>
+        </View>
+
         {/* ── Description ── */}
         <View style={styles.descriptionWrap}>
           <Text style={styles.descriptionText}>{descriptionTruncated}</Text>
@@ -1217,6 +1042,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           )}
         </View>
 
+        <UnitDetails project={project} />
+
         {/* ── Project Resources ── */}
         {(brochureUrl || allGalleryImages.all.length > 0 || walkthroughUrl) && <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Project Resources</Text>
@@ -1225,7 +1052,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           {brochureUrl && <MenuItemRow
             icon={BookOpen}
             label="Project Brochure"
-            subtitle="Download project brochure"
+            subtitle="View project brochure"
             onPress={() => openModal("brochure")}
           />}
           {allGalleryImages.all.length > 0 && <MenuItemRow
@@ -1243,16 +1070,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           />}
         </View>}
 
-        {/* ── Inventory ── */}
-        {(plotLayout || configurations.length > 0 || plots) && <Text style={styles.sectionTitle}>Inventory</Text>}
-        {(plotLayout || configurations.length > 0 || plots) && <View style={styles.menuCard}>
-          <MenuItemRow
-            icon={LayoutGrid}
-            label="Plot Availability"
-            subtitle="Check available plots and layout"
-            isLast
-            onPress={() => openModal("plots")}
-          />
+        {(plotLayout || project?.floorPlans?.length > 0) && <View style={styles.menuCard}>
+          <MenuItemRow icon={LayoutGrid} label="Layout & Floor Plans" subtitle="View plan documents" isLast onPress={() => openModal("plots")} />
         </View>}
 
         {/* ── Project Information ── */}
@@ -1279,6 +1098,11 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           />}
         </View>}
 
+        <View style={styles.contactSection}>
+          <Text style={styles.sectionTitle}>Contact details</Text>
+          <PropertyContact project={project} />
+        </View>
+
         {/* Bottom spacer for tab bar */}
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -1287,8 +1111,6 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
       {/* ── Gallery Modal ── */}
       <BottomSheet
-        document={pdfDocument}
-        onCloseDocument={() => setPdfDocument(null)}
         visible={activeModal === "gallery"}
         onClose={closeModal}
         title="Gallery"
@@ -1343,20 +1165,17 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
       {/* ── Brochure Modal ── */}
       <BottomSheet
-        document={pdfDocument}
-        onCloseDocument={() => setPdfDocument(null)}
+        expanded
         visible={activeModal === "brochure"}
         onClose={closeModal}
         title="Project Brochure"
-        subtitle="Download project brochure"
+        subtitle="View project brochure"
       >
         {renderBrochureContent()}
       </BottomSheet>
 
       {/* ── Walkthrough Modal ── */}
       <BottomSheet
-        document={pdfDocument}
-        onCloseDocument={() => setPdfDocument(null)}
         visible={activeModal === "walkthrough"}
         onClose={closeModal}
         title="Virtual Walkthrough"
@@ -1367,20 +1186,18 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
       {/* ── Plot Availability Modal ── */}
       <BottomSheet
-        document={pdfDocument}
-        onCloseDocument={() => setPdfDocument(null)}
+        expanded
         visible={activeModal === "plots"}
         onClose={closeModal}
-        title="Plot Availability"
-        subtitle="Check available plots and layout"
+        title="Layout & Floor Plans"
+        subtitle="Project plan documents"
       >
         {renderPlotContent()}
       </BottomSheet>
 
       {/* ── Legal Documents Modal ── */}
       <BottomSheet
-        document={pdfDocument}
-        onCloseDocument={() => setPdfDocument(null)}
+        expanded
         visible={activeModal === "legal"}
         onClose={closeModal}
         title="Legal Documents"
@@ -1391,8 +1208,6 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
       {/* ── Construction Updates Modal ── */}
       <BottomSheet
-        document={pdfDocument}
-        onCloseDocument={() => setPdfDocument(null)}
         visible={activeModal === "construction"}
         onClose={closeModal}
         title="Construction Update"
@@ -1403,8 +1218,6 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
       {/* ── Social Media Creatives Modal ── */}
       <BottomSheet
-        document={pdfDocument}
-        onCloseDocument={() => setPdfDocument(null)}
         visible={activeModal === "creatives"}
         onClose={closeModal}
         title="Social Media Creative"
@@ -1421,6 +1234,17 @@ export default PropertyDetailScreen;
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  categoryBadge: { alignSelf: 'flex-start', backgroundColor: '#FFF1E2', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 16 },
+  categoryLabel: { color: '#A4530B', fontFamily: theme.fonts.medium, fontSize: 12, textTransform: 'capitalize' },
+  contactSection: { padding: 16, backgroundColor: '#FFFCF8', borderWidth: 1, borderColor: '#EFE8E0', borderRadius: 14, marginBottom: 16 },
+  documentSheet: { height: SCREEN_HEIGHT * 0.88 },
+  inlineDocument: { marginBottom: 20, borderWidth: 1, borderColor: '#E9E9E9', borderRadius: 12, padding: 10, backgroundColor: '#FAFAFA', overflow: 'hidden' },
+  inlineDocumentTitle: { fontSize: 14, fontWeight: '600', color: '#191919', paddingHorizontal: 4, paddingTop: 4 },
+  unitDetails: { marginBottom: 20, gap: 8 },
+  unitFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 10, borderWidth: 1, borderColor: '#EFE8E0', borderRadius: 14, backgroundColor: '#FFFCF8' },
+  unitFact: { width: '31.5%', flexGrow: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F7F7F7', gap: 5 },
+  unitFactValue: { fontSize: 12, fontWeight: '700', color: '#333333', textAlign: 'center' },
+  unitFactLabel: { fontSize: 10, color: '#777777' },
   safeArea: {
     flex: 1,
     backgroundColor: "#FFFFFF",
@@ -1444,8 +1268,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: "#0D0D0D",
     fontFamily: theme.fonts.extraBold,
-    fontSize: 22,
-    letterSpacing: 3,
+    fontSize: 17,
+    lineHeight: 23,
+    flex: 1,
+    minWidth: 0,
+    marginHorizontal: 12,
   },
   headerRight: {
     flexDirection: "row",

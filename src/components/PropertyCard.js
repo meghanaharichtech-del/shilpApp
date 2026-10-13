@@ -1,9 +1,9 @@
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { ArrowUpRight, MapPin } from "lucide-react-native";
 import FavoriteHeartButton from "./FavoriteHeartButton";
 import FavoriteHeartOverlay from "./FavoriteHeartOverlay";
-import { BASEURL } from "../utils/ApiHelper";
 import { theme } from "../utils/theme";
 
 const FALLBACK_IMAGE = require("../assets/defaultnoimg.png");
@@ -14,12 +14,8 @@ const firstImage = (project) =>
   null;
 
 const imageSource = (imagePath) => {
-  if (!imagePath || typeof imagePath !== "string") return FALLBACK_IMAGE;
-  if (/^https?:\/\//i.test(imagePath)) return { uri: imagePath };
-
-  return {
-    uri: `${BASEURL.replace(/\/$/, "")}/${imagePath.replace(/^\//, "")}`,
-  };
+  const uri = resolveMediaUrl(imagePath);
+  return uri ? { uri } : FALLBACK_IMAGE;
 };
 
 const statusLabel = (status) => {

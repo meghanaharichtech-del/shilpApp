@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from '../utils/mediaUrl';
 import FavoriteHeartOverlay from '../components/FavoriteHeartOverlay';
 import FavoriteHeartButton from '../components/FavoriteHeartButton';
 import React, {
@@ -22,7 +23,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -36,12 +36,13 @@ import {
   X,
 } from "lucide-react-native";
 import axios from "axios";
-import { BASEURL, PROJECTS_API } from "../utils/ApiHelper";
+import { PROJECTS_API } from "../utils/ApiHelper";
 import { theme } from "../utils/theme";
 import { StorageUtils } from "../utils/StorageUtils";
 import NotificationBadge from "../components/NotificationBadge";
 import { useNotifications } from "../context/NotificationContext";
-console.log("----- baseurl",BASEURL);
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 const FALLBACK_IMAGE = require("../assets/defaultnoimg.png");
 const BANNER_IMAGES = [
@@ -63,12 +64,8 @@ const firstImage = (project) =>
   null;
 
 const imageSource = (imagePath) => {
-  if (!imagePath || typeof imagePath !== "string") return FALLBACK_IMAGE;
-  if (/^https?:\/\//i.test(imagePath)) return { uri: imagePath };
-
-  return {
-    uri: `${BASEURL.replace(/\/$/, "")}/${imagePath.replace(/^\//, "")}`,
-  };
+  const uri = resolveMediaUrl(imagePath);
+  return uri ? { uri } : FALLBACK_IMAGE;
 };
 
 const statusLabel = (status) => {
@@ -110,6 +107,14 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
   const isAutoScrollingRef = useRef(false);
   const slideIndexRef = useRef(0);
   const searchInputRef = useRef(null);
+  const bannerHeightRef = useRef(null);
+  const listOffsetRef = useRef(0);
+  const [searchPinned, setSearchPinned] = useState(false);
+  const updatePinnedSearch = useCallback((offset) => {
+    listOffsetRef.current = offset;
+    const height = bannerHeightRef.current;
+    setSearchPinned(height !== null && offset >= height);
+  }, []);
   useEffect(() => { slideIndexRef.current = slideIndex; }, [slideIndex]);
 
   useEffect(() => {
@@ -128,7 +133,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
       const controller = new AbortController();
       abortRef.current = controller;
       loadingMoreRef.current = true;
-      if (page === 1) setProjects([]);
+      if (page === 1 && !isRefresh) setProjects([]);
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError("");
@@ -170,7 +175,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
           "Failed to load projects:",
           error?.response?.status || error?.message,
         );
-        if (page === 1) setProjects([]);
+        if (page === 1 && !isRefresh) setProjects([]);
         setError(
           error?.response?.data?.message ||
             error?.message ||
@@ -272,9 +277,9 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
       { _listType: "heading", _listKey: "heading" },
       ...(sortedProjects.length > 0
         ? sortedProjects
-        : [{ _listType: "empty", _listKey: "empty" }]),
+        : (!loading && !refreshing ? [{ _listType: "empty", _listKey: "empty" }] : [])),
     ],
-    [sortedProjects, searchMode],
+    [sortedProjects, searchMode, loading, refreshing],
   );
 
   const renderCategoryChips = () => (
@@ -385,7 +390,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
             </Text>
           </View>
           <View style={styles.priceRow}>
-              <Text style={styles.priceText}>{price || "'₹ 45 Lakh"}</Text>
+              <Text style={styles.priceText}>{price || "₹ 45 Lakh"}</Text>
               {price && <Text style={styles.onwardsText}> Onwards</Text>}
               <View style={{ flex: 1 }} />
               <FavoriteHeartButton project={item} />
@@ -447,7 +452,12 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
 
   const renderListItem = ({ item }) => {
     if (item._listType === "search")
-      return <View style={styles.stickySearchRow}>{renderSearchRow()}</View>;
+      return <View
+        style={[styles.stickySearchRow, searchPinned && styles.hiddenSearchRow]}
+        pointerEvents={searchPinned ? "none" : "auto"}
+        accessibilityElementsHidden={searchPinned}
+        importantForAccessibility={searchPinned ? "no-hide-descendants" : "auto"}
+      >{renderSearchRow()}</View>;
     if (item._listType === "categories")
       return (
         <View style={styles.stickyCategoryRow}>{renderCategoryChips()}</View>
@@ -460,7 +470,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
         </View>
       );
     if (item._listType === "empty")
-      return !loading ? (
+      return (!loading && !refreshing) ? (
         <View style={styles.emptyState}>
           {error ? (
             <WifiOff size={28} color="#777" />
@@ -512,14 +522,17 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
         </View>
       </View>}
 
+      <View style={styles.listViewport}>
       <FlatList
         nestedScrollEnabled
+        onScroll={searchMode ? undefined : event => updatePinnedSearch(event.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={16}
         data={listData}
         keyExtractor={(item, index) =>
           item._listKey || item._id || item.slug || String(index)
         }
         renderItem={renderListItem}
-        stickyHeaderIndices={searchMode ? [0] : [1]}
+        stickyHeaderIndices={searchMode ? [0] : undefined}
         keyboardShouldPersistTaps="handled"
         // style={{ gap: 16 }}
         contentContainerStyle={styles.listContent}
@@ -532,6 +545,10 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
           />
         }
         ListHeaderComponent={searchMode ? null : (
+          <View onLayout={event => {
+            bannerHeightRef.current = event.nativeEvent.layout.height;
+            updatePinnedSearch(listOffsetRef.current);
+          }}>
             <View
               style={styles.carouselWrap}
               onLayout={(event) =>
@@ -600,6 +617,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
                 </View>
               )}
             </View>
+          </View>
         )}
         ListFooterComponent={
           loading ? (
@@ -616,6 +634,12 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
           )
         }
       />
+      {!searchMode && searchPinned && (
+        <View style={styles.pinnedSearchRow}>
+          {renderSearchRow()}
+        </View>
+      )}
+      </View>
       <Modal
         visible={showFilters}
         transparent
@@ -753,12 +777,24 @@ const styles = StyleSheet.create({
     backgroundColor:theme.colors.borderlightgraycolour,
   borderRadius:10
   },
+  listViewport: { flex: 1 },
+  // A sibling of the list has a real, fixed touch area at its visible position.
+  pinnedSearchRow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    backgroundColor: "#FFFFFF",
+    zIndex: 20,
+    elevation: 4,
+  },
+  hiddenSearchRow: { opacity: 0 },
   stickySearchRow: {
     backgroundColor: "#FFFFFF",
     marginHorizontal: -16,
     paddingHorizontal: 16,
-    // paddingTop: 8,
-    // elevation: 4,
+    elevation: 4,
     zIndex: 20,
   },
   searchBox: {
@@ -771,7 +807,6 @@ const styles = StyleSheet.create({
     // height: 46,
     // paddingVertical: 10,
     paddingHorizontal: 10,
-    alignItems:"center",
     justifyContent:"center"
   },
   searchInput: {

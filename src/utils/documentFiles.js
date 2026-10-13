@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from './mediaUrl';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Linking, Platform } from 'react-native';
@@ -11,6 +12,7 @@ export function documentFileName(url, title) {
 }
 
 export async function loadDocumentFile(url, title) {
+  url = resolveMediaUrl(url);
   if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) throw new Error('This document does not have a valid download URL.');
   if (Platform.OS === 'web') { await Linking.openURL(url); return { browser: true }; }
   const folder = new Directory(Paths.document, 'project-documents');
@@ -20,11 +22,20 @@ export async function loadDocumentFile(url, title) {
   try {
     saved = await File.downloadFileAsync(url, target, { idempotent: true });
     if (!saved.exists || !saved.size) throw new Error('The downloaded file is empty.');
-    if (saved.name.toLowerCase().endsWith('.pdf')) {
-      const handle = saved.open();
-      let header;
-      try { header = String.fromCharCode(...handle.readBytes(5)); } finally { handle.close(); }
-      if (header !== '%PDF-') throw new Error('The API link did not return a PDF. Please ask the admin to upload a valid PDF.');
+    const handle = saved.open();
+    let bytes;
+    try { bytes = handle.readBytes(12); } finally { handle.close(); }
+    const signature = String.fromCharCode(...bytes);
+    const extension = signature.startsWith('%PDF-') ? 'pdf'
+      : bytes[0] === 137 && signature.slice(1, 4) === 'PNG' ? 'png'
+      : bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255 ? 'jpg'
+      : signature.startsWith('RIFF') && signature.slice(8, 12) === 'WEBP' ? 'webp'
+      : null;
+    if (!extension) throw new Error('The API link did not return a PDF or supported image. Please ask the admin to check this upload.');
+    if (!saved.name.toLowerCase().endsWith(`.${extension}`)) {
+      const corrected = new File(folder, saved.name.replace(/\.[^.]+$/, `.${extension}`));
+      if (corrected.exists) corrected.delete();
+      saved.move(corrected);
     }
   } catch (error) {
     if (target.exists) target.delete();

@@ -1,8 +1,8 @@
 // Override EXPO_PUBLIC_API_URL when using a local development backend.
 // export const BASEURL = ("https://shilpappbackend-production.up.railway.app/" || "http://localhost:3001/"
 // ).replace(/\/$/, "") + "/";
-// export const BASEURL ="http://192.168.3.164:3000/" local IP address
-export const BASEURL ="https://shilpappbackend-production.up.railway.app/" //  production url
+export const BASEURL ="http://192.168.3.164:3000/" // local IP address
+// export const BASEURL ="https://shilpappbackend-production.up.railway.app/" //  production url
 
 export const LOGIN_API = BASEURL + 'api/broker/login';
 export const PROJECTS_API = BASEURL + 'api/projects';
