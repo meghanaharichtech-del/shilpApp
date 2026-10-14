@@ -38,9 +38,11 @@ function FavoriteCard({ item, navigation }) {
   const [failedUrl, setFailedUrl] = useState(null);
   const imageUrl = firstImage(item);
   const isFailed = failedUrl === imageUrl;
-  const price =
-    item.plotDetails?.price ?? item.configurations?.[0]?.price;
-
+  const rawPrice =
+    item.price ?? item.plotDetails?.price ?? item.configurations?.[0]?.price;
+  const price = Number(rawPrice);
+  const hasPrice = Number.isFinite(price) && price > 0;
+  
   return (
     <Pressable
       accessibilityRole="button"
@@ -80,9 +82,9 @@ function FavoriteCard({ item, navigation }) {
         >
           <View>
             <Text style={styles.priceText}>
-              {price != null
-                ? `₹ ${Number(price).toLocaleString("en-IN")}`
-                : "₹ 45 Lakh"}
+              {hasPrice
+                ? `₹ ${price.toLocaleString("en-IN")}`
+                : "Price on request"}
             </Text>
           </View>
           <FavoriteHeartButton

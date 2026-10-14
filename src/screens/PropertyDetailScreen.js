@@ -26,7 +26,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ArrowLeft,
-  Share2,
   MapPin,
   ChevronRight,
   ChevronDown,
@@ -919,9 +918,6 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         <Text style={styles.headerTitle} numberOfLines={2} accessibilityRole="header">{projectName}</Text>
         <View style={styles.headerRight}>
           <FavoriteHeartButton project={project} style={styles.headerBtn} />
-          <Pressable style={styles.headerBtn} hitSlop={10}>
-            <Share2 size={20} color="#191919" />
-          </Pressable>
         </View>
       </View>
 
@@ -995,12 +991,14 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           )}
 
           {/* Image Counter */}
-          <View style={styles.imageCounter}>
-            <Images size={14} color="#FFFFFF" />
-            <Text style={styles.imageCounterText}>
-              {slideIndex + 1}/{totalImages}
-            </Text>
-          </View>
+          {totalImages > 1 && (
+            <View style={styles.imageCounter}>
+              <Images size={14} color="#FFFFFF" />
+              <Text style={styles.imageCounterText}>
+                {slideIndex + 1}/{totalImages}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* ── Title & Status ── */}

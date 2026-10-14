@@ -41,16 +41,17 @@ export default function PropertyCard({ project: item, onPress }) {
     const location =
       item.address || item.location?.name || "Location details coming soon";
     const rawPrice =
-      item.plotDetails?.price ?? item.configurations?.[0]?.price ?? null;
+      item?.price ?? item?.price ?? null;
+console.log("----priceeeeee", item.price);
 
     const price = rawPrice !== null ? formatPrice(rawPrice) : null;
     // console.log("PROJECT:", item.name);
     // console.log("PLOT DETAILS:", item.plotDetails);
     // console.log("CONFIGURATIONS:", item.configurations);
-    // console.log(
-    //   "RAW PRICE:",
-    //   item.plotDetails?.price || item.configurations?.[0]?.price
-    // );
+    console.log(
+      "RAW PRICE:",
+      item.price || item.plotDetails?.price || item.configurations?.[0]?.price
+    );
     return (
       <Pressable
         style={styles.projectCard}

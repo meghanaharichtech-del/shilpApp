@@ -161,6 +161,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
             Authorization: `Bearer ${accessToken}`,
           },
         });
+        console.log("--------", response.data);
         console.log("--------", accessToken);
 
         if (!response.data?.success)
@@ -321,7 +322,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
     const location =
       item.address || item.location?.name || "Location details coming soon";
     const rawPrice =
-      item.plotDetails?.price ?? item.configurations?.[0]?.price ?? null;
+      item?.price ?? item.configurations?.[0]?.price ?? null;
 
     const price = rawPrice !== null ? formatPrice(rawPrice) : null;
     // console.log("PROJECT:", item.name);
@@ -794,7 +795,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     marginHorizontal: -16,
     paddingHorizontal: 16,
-    elevation: 4,
+    // elevation: 4,
     zIndex: 20,
   },
   searchBox: {
@@ -807,7 +808,8 @@ const styles = StyleSheet.create({
     // height: 46,
     // paddingVertical: 10,
     paddingHorizontal: 10,
-    justifyContent:"center"
+    justifyContent:"center",
+    // marginTop:5
   },
   searchInput: {
     color: theme.colors.blackText,
@@ -817,7 +819,7 @@ const styles = StyleSheet.create({
     // height: "100%",
     marginLeft: 2,
     alignItems:"center",
-    justifyContent:"center"
+    justifyContent:"center",
   },
   filterButton: {
     alignItems: "center",

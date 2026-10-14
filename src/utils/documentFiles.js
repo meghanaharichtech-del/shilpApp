@@ -3,6 +3,23 @@ import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Linking, Platform } from 'react-native';
 
+// Drive share URLs point to an HTML page, not the document bytes.
+export function googleDriveDocument(url) {
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol) || !['drive.google.com', 'www.drive.google.com', 'drive.usercontent.google.com'].includes(parsed.hostname)) return null;
+    const id = parsed.pathname.match(/^\/file\/d\/([\w-]+)(?:\/|$)/)?.[1]
+      || (/^\/(?:open|uc|download)\/?$/.test(parsed.pathname) ? parsed.searchParams.get('id') : null);
+    if (!id || !/^[\w-]+$/.test(id)) return null;
+    const resourceKey = parsed.searchParams.get('resourcekey');
+    const keyQuery = resourceKey ? `&resourcekey=${encodeURIComponent(resourceKey)}` : '';
+    return {
+      previewUrl: `https://drive.google.com/file/d/${id}/preview${resourceKey ? `?resourcekey=${encodeURIComponent(resourceKey)}` : ''}`,
+      downloadUrl: `https://drive.google.com/uc?export=download&id=${id}${keyQuery}`,
+    };
+  } catch { return null; }
+}
+
 export function documentFileName(url, title) {
   const extension = url.split(/[?#]/)[0].match(/\.(pdf|png|jpe?g|webp)$/i)?.[1]?.toLowerCase() || 'pdf';
   const name = String(title || 'Project document').replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-|-$/g, '').slice(0, 70) || 'document';
@@ -15,12 +32,13 @@ export async function loadDocumentFile(url, title) {
   url = resolveMediaUrl(url);
   if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) throw new Error('This document does not have a valid download URL.');
   if (Platform.OS === 'web') { await Linking.openURL(url); return { browser: true }; }
+  const drive = googleDriveDocument(url);
   const folder = new Directory(Paths.document, 'project-documents');
   folder.create({ idempotent: true, intermediates: true });
   const target = new File(folder, documentFileName(url, title));
   let saved;
   try {
-    saved = await File.downloadFileAsync(url, target, { idempotent: true });
+    saved = await File.downloadFileAsync(drive?.downloadUrl || url, target, { idempotent: true });
     if (!saved.exists || !saved.size) throw new Error('The downloaded file is empty.');
     const handle = saved.open();
     let bytes;
@@ -39,6 +57,7 @@ export async function loadDocumentFile(url, title) {
     }
   } catch (error) {
     if (target.exists) target.delete();
+    if (drive) throw new Error('Unable to download this Google Drive document. Check your connection and ask the owner to allow access to anyone with the link and enable downloads. You can still try viewing it in the app.');
     throw error;
   }
   return saved;

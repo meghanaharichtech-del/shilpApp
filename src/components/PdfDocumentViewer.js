@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Asset } from 'expo-asset';
 import { File } from 'expo-file-system';
 import { WebView } from 'react-native-webview';
-import { X, Maximize2, Download } from 'lucide-react-native';
-import { loadDocumentFile, downloadDocument } from '../utils/documentFiles';
+import { X, Maximize2, Download, ExternalLink } from 'lucide-react-native';
+import { loadDocumentFile, downloadDocument, googleDriveDocument } from '../utils/documentFiles';
 
 function PdfSurface({ document, preview }) {
   const webview = useRef(null);
@@ -74,6 +74,17 @@ export default function PdfDocumentViewer({ document, height = 300 }) {
     catch (error) { setSaveError(error.message || 'Unable to save document'); }
     finally { setSaving(false); }
   };
+  if (googleDriveDocument(document.url)) return <View>
+    <Pressable accessibilityRole="link" accessibilityLabel={`View ${document.title || 'document'} in Google Drive`} style={styles.save} onPress={async () => {
+      setSaveError('');
+      try { await Linking.openURL(document.url.trim()); }
+      catch { setSaveError('Unable to open this link. Please try again.'); }
+    }}>
+      <ExternalLink size={18} color="#8D5B2E" />
+      <Text style={styles.driveLink}>View in Google Drive</Text>
+    </Pressable>
+    {saveError ? <Text style={styles.saveError}>{saveError}</Text> : null}
+  </View>;
   return <View>
     <Pressable accessibilityRole="button" accessibilityLabel={`Open ${document.title || 'PDF'}`} onPress={() => setOpen(true)} style={[styles.preview, { height }]}>
       <View pointerEvents="none" style={styles.surface}><PdfSurface document={document} preview /></View>
@@ -91,6 +102,7 @@ export default function PdfDocumentViewer({ document, height = 300 }) {
 }
 const styles = StyleSheet.create({
   save: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 14, minHeight: 48 },
+  driveLink: { color: '#8D5B2E', textDecorationLine: 'underline', fontWeight: '600' },
   saveError: { color: '#B3261E', paddingBottom: 8 },
   surface: { flex: 1, backgroundColor: '#F3F3F3' },
   preview: { overflow: 'hidden', borderRadius: 8, backgroundColor: '#F3F3F3', marginTop: 10 },
