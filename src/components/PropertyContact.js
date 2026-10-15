@@ -18,8 +18,8 @@ export default function PropertyContact({ project }) {
   </View>;
 }
 const styles = StyleSheet.create({
-  container: { borderTopWidth: 1, borderTopColor: '#EFE8E0', paddingTop: 8, gap: 5 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  container: { flexDirection: 'row', alignItems: 'flex-start', borderTopWidth: 1, borderTopColor: '#EFE8E0', paddingTop: 12, gap: 16 },
+  row: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 6 },
   name: { flex: 1, fontFamily: theme.fonts.medium, color: '#555', fontSize: 12 },
   phone: { flex: 1, fontFamily: theme.fonts.regular, color: '#777', fontSize: 12 },
 });

@@ -1,3 +1,4 @@
+import UnitAvailability from '../components/UnitAvailability';
 import PropertyContact from '../components/PropertyContact';
 import ImagePreview from '../components/ImagePreview';
 import { resolveMediaUrl } from '../utils/mediaUrl';
@@ -257,6 +258,12 @@ const DocumentRow = ({ title, url }) => (
 
 // Compact, data-backed unit cards stay on the project page above resources.
 const UnitDetails = ({ project }) => {
+  if (Array.isArray(project?.unitBlocks) && project.unitBlocks.length) {
+    return <View style={styles.unitDetails}>
+      <Text style={styles.sectionTitle}>Unit availability</Text>
+      <UnitAvailability key={project._id} blocks={project.unitBlocks} />
+    </View>;
+  }
   const floors = Array.isArray(project?.floorAvailability) ? project.floorAvailability : [];
   const configurations = Array.isArray(project?.configurations) ? project.configurations : [];
   const rows = floors.length ? floors : configurations;
