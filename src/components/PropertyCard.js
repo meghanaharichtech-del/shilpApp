@@ -1,3 +1,4 @@
+import { formatPropertyPrice } from '../utils/propertyPrice';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
@@ -26,32 +27,20 @@ const statusLabel = (status) => {
     .join(" ");
 };
 
-const formatPrice = (price) => {
-  const value = Number(price);
-  if (!Number.isFinite(value) || value <= 0) return null;
-  if (value >= 10000000)
-    return `₹ ${(value / 10000000).toFixed(value % 10000000 ? 2 : 0)} Cr`;
-  if (value >= 100000)
-    return `₹ ${(value / 100000).toFixed(value % 100000 ? 2 : 0)} Lakh`;
-  return `₹ ${value.toLocaleString("en-IN")}`;
-};
+
 
 export default function PropertyCard({ project: item, onPress }) {
     const imageUrl = firstImage(item);
     const location =
       item.address || item.location?.name || "Location details coming soon";
-    const rawPrice =
-      item?.price ?? item?.price ?? null;
-console.log("----priceeeeee", item.price);
-
-    const price = rawPrice !== null ? formatPrice(rawPrice) : null;
+    const price = formatPropertyPrice(item);
     // console.log("PROJECT:", item.name);
     // console.log("PLOT DETAILS:", item.plotDetails);
     // console.log("CONFIGURATIONS:", item.configurations);
-    console.log(
-      "RAW PRICE:",
-      item.price || item.plotDetails?.price || item.configurations?.[0]?.price
-    );
+    // isDebug && console.log(
+    //   "RAW PRICE:",
+    //   item.price || item.plotDetails?.price || item.configurations?.[0]?.price
+    // );
     return (
       <Pressable
         style={styles.projectCard}
@@ -109,8 +98,7 @@ console.log("----priceeeeee", item.price);
             </Text>
           </View>
           <View style={styles.priceRow}>
-              <Text style={styles.priceText}>{price || "₹ 45 Lakh"}</Text>
-              {price && <Text style={styles.onwardsText}> Onwards</Text>}
+              <Text style={styles.priceText}>{price || "Price on request"}</Text>
             </View>
         </View>
         <View style={styles.cardActions}>

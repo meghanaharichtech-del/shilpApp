@@ -1,3 +1,4 @@
+import { formatPropertyPrice } from '../utils/propertyPrice';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import FavoriteHeartOverlay from '../components/FavoriteHeartOverlay';
 import FavoriteHeartButton from '../components/FavoriteHeartButton';
@@ -38,7 +39,7 @@ import {
 import axios from "axios";
 import { PROJECTS_API } from "../utils/ApiHelper";
 import { theme } from "../utils/theme";
-import { StorageUtils } from "../utils/StorageUtils";
+import { isDebug, StorageUtils } from "../utils/StorageUtils";
 import NotificationBadge from "../components/NotificationBadge";
 import { useNotifications } from "../context/NotificationContext";
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -76,15 +77,7 @@ const statusLabel = (status) => {
     .join(" ");
 };
 
-const formatPrice = (price) => {
-  const value = Number(price);
-  if (!Number.isFinite(value) || value <= 0) return null;
-  if (value >= 10000000)
-    return `₹ ${(value / 10000000).toFixed(value % 10000000 ? 2 : 0)} Cr`;
-  if (value >= 100000)
-    return `₹ ${(value / 100000).toFixed(value % 100000 ? 2 : 0)} Lakh`;
-  return `₹ ${value.toLocaleString("en-IN")}`;
-};
+
 
 const HomeScreen = ({ navigation, route, searchMode = false }) => {
   const { unreadCount } = useNotifications();
@@ -161,8 +154,8 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
             Authorization: `Bearer ${accessToken}`,
           },
         });
-        console.log("--------", response.data);
-        console.log("--------", accessToken);
+        isDebug && console.log("--------", response.data);
+        isDebug && console.log("--------", accessToken);
 
         if (!response.data?.success)
           throw new Error("Unable to load projects.");
@@ -172,7 +165,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
         setPagination(response.data.pagination ?? null);
       } catch (error) {
         if (requestId !== requestRef.current || controller.signal.aborted) return;
-        console.log(
+        isDebug && console.log(
           "Failed to load projects:",
           error?.response?.status || error?.message,
         );
@@ -321,10 +314,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
     const imageUrl = firstImage(item);
     const location =
       item.address || item.location?.name || "Location details coming soon";
-    const rawPrice =
-      item?.price ?? item.configurations?.[0]?.price ?? null;
-
-    const price = rawPrice !== null ? formatPrice(rawPrice) : null;
+    const price = formatPropertyPrice(item);
     // console.log("PROJECT:", item.name);
     // console.log("PLOT DETAILS:", item.plotDetails);
     // console.log("CONFIGURATIONS:", item.configurations);
@@ -391,8 +381,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
             </Text>
           </View>
           <View style={styles.priceRow}>
-              <Text style={styles.priceText}>{price || "₹ 45 Lakh"}</Text>
-              {price && <Text style={styles.onwardsText}> Onwards</Text>}
+              <Text style={styles.priceText}>{price || "Price on request"}</Text>
               <View style={{ flex: 1 }} />
               <FavoriteHeartButton project={item} />
             </View>

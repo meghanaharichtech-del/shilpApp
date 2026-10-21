@@ -29,7 +29,7 @@ export function FavoritesProvider({ children }) {
 }
 export function useFavorites() {
   const value = useContext(FavoritesContext);
-  console.log("===>",value?.projects)
+  // console.log("===>",value?.projects)
   if (!value) throw new Error('useFavorites requires FavoritesProvider');
   return value;
 }

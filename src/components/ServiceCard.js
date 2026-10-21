@@ -10,6 +10,7 @@ import {
 import LocationIcon from '../assets/addressIcon.svg';
 import { theme } from '../utils/theme';
 import Star from './Star';
+import { isDebug } from '../utils/StorageUtils';
 
 
 
@@ -41,7 +42,7 @@ const ServiceCard = ({
         showsHorizontalScrollIndicator={false} 
         renderItem={({ item }) => {
 const distanceMeters = item?.workshop.distance_meters || item?.workshop?.distanceKm;
-console.log("--- service", item.workshop.distance_meters);
+isDebug && console.log("--- service", item.workshop.distance_meters);
 
 let formattedDistance = "Nearby";
 
@@ -56,7 +57,7 @@ if (distanceMeters != null) {
 }
           const rating = item.workshop?.rating;
           const reviews = item.workshop?.totalReviews;
-          console.log("items", item.workshop?.rating);
+          isDebug && console.log("items", item.workshop?.rating);
           
           return (
             

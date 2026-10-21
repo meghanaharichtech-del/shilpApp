@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import AuthLayout, { Field, styles } from '../components/AuthLayout';
 import { apiRequest, apiError } from '../utils/brokerApi';
-import { StorageUtils } from '../utils/StorageUtils';
+import { isDebug, StorageUtils } from '../utils/StorageUtils';
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState(''),
     [error, setError] = useState(''),
@@ -20,9 +20,9 @@ export default function LoginScreen({ navigation }) {
       const data = await apiRequest(LOGIN_API, 'post', {
         email: email.trim().toLowerCase()
       });
-      console.log("----- login url", LOGIN_API);
+     isDebug && console.log("----- login url", LOGIN_API);
       
-      console.log("------- login eror", data);
+     isDebug && console.log("------- login eror", data);
       
       await StorageUtils.setItem('pendingAuth', {
         ...data,

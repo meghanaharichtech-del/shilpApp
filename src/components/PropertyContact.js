@@ -13,13 +13,28 @@ export default function PropertyContact({ project }) {
   const name = textValue(contact?.name, contact, item.contactName, item.contactDetails?.name);
   const phone = textValue(item.contactPhone, contact?.contactPhone, contact?.contactPhone, item.contactDetails?.phone, item.contactPhone);
   return <View style={styles.container}>
-    <View style={styles.row}><UserRound size={13} color="#8D5B2E" /><Text style={styles.name}>{name || 'Contact person unavailable'}</Text></View>
-    <View style={styles.row}><Phone size={13} color="#8D5B2E" /><Text style={styles.phone}>{phone || 'Number unavailable'}</Text></View>
+    <View style={[styles.row, styles.rowBorder]}>
+      <View style={styles.iconWrap}><UserRound size={20} color={theme.colors.graysubtext} strokeWidth={1.6} /></View>
+      <View style={styles.textWrap}>
+        <Text style={styles.label}>Contact person</Text>
+        <Text style={styles.value}>{name || 'Contact person unavailable'}</Text>
+      </View>
+    </View>
+    <View style={styles.row}>
+      <View style={styles.iconWrap}><Phone size={20} color={theme.colors.graysubtext} strokeWidth={1.6} /></View>
+      <View style={styles.textWrap}>
+        <Text style={styles.label}>Phone number</Text>
+        <Text style={styles.value}>{phone || 'Number unavailable'}</Text>
+      </View>
+    </View>
   </View>;
 }
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', alignItems: 'flex-start', borderTopWidth: 1, borderTopColor: '#EFE8E0', paddingTop: 12, gap: 16 },
-  row: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  name: { flex: 1, fontFamily: theme.fonts.medium, color: '#555', fontSize: 12 },
-  phone: { flex: 1, fontFamily: theme.fonts.regular, color: '#777', fontSize: 12 },
+  container: { backgroundColor: theme.colors.purewhiteBackground },
+  row: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 14 },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: theme.colors.backgroundmaincolor },
+  iconWrap: { width: 40, height: 40, borderRadius: 10, backgroundColor: theme.colors.borderlightgraycolour, alignItems: 'center', justifyContent: 'center' },
+  textWrap: { flex: 1, minWidth: 0 },
+  label: { fontFamily: theme.fonts.semiBold, color: theme.colors.blackText, fontSize: 14 },
+  value: { fontFamily: theme.fonts.regular, color: theme.colors.subText, fontSize: 12, marginTop: 3 },
 });

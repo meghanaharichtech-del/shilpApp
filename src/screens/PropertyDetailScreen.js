@@ -1,4 +1,6 @@
+import { formatPropertyPrice } from '../utils/propertyPrice';
 import UnitAvailability from '../components/UnitAvailability';
+import PropertySocialLinks from '../components/PropertySocialLinks';
 import PropertyContact from '../components/PropertyContact';
 import ImagePreview from '../components/ImagePreview';
 import { resolveMediaUrl } from '../utils/mediaUrl';
@@ -189,11 +191,10 @@ const BottomSheet = ({ visible, onClose, title, subtitle, children, expanded = f
     statusBarTranslucent
     onRequestClose={onClose}
   >
-    <Pressable style={styles.modalOverlay} onPress={onClose}>
+    <View style={styles.modalOverlay}>
       <Pressable style={styles.modalBackdrop} onPress={onClose} />
       <View
         style={[styles.modalSheet, expanded && styles.documentSheet]}
-        onStartShouldSetResponder={() => true}
       >
         {/* Drag Handle */}
         <Pressable
@@ -231,7 +232,7 @@ const BottomSheet = ({ visible, onClose, title, subtitle, children, expanded = f
           {visible ? children : null}
         </ScrollView>
       </View>
-    </Pressable>
+    </View>
   </Modal>
 );
 
@@ -260,14 +261,13 @@ const DocumentRow = ({ title, url }) => (
 const UnitDetails = ({ project }) => {
   if (Array.isArray(project?.unitBlocks) && project.unitBlocks.length) {
     return <View style={styles.unitDetails}>
-      <Text style={styles.sectionTitle}>Unit availability</Text>
       <UnitAvailability key={project._id} blocks={project.unitBlocks} />
     </View>;
   }
   const floors = Array.isArray(project?.floorAvailability) ? project.floorAvailability : [];
   const configurations = Array.isArray(project?.configurations) ? project.configurations : [];
   const rows = floors.length ? floors : configurations;
-  if (!rows.length) return null;
+  if (!rows.length) return <Text style={styles.emptyModalText}>No unit details added yet.</Text>;
   return <View style={styles.unitDetails}>
     <Text style={styles.sectionTitle}>Floor availability</Text>
     {rows.map((row, index) => {
@@ -383,6 +383,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         axios.get(PROJECT_DETAIL_API(pid), config),
         axios.get(PROJECT_DOCUMENTS_API(pid), config),
       ]);
+      // console.log("------ projects details", JSON.stringify(detail, null, 2));
+      
       if (controller.signal.aborted) return;
       setProject(prev => ({ ...prev,
         ...(detail.status === "fulfilled" && detail.value.data?.success ? detail.value.data.project : {}),
@@ -1027,6 +1029,8 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           <Text style={styles.categoryLabel}>{project?.projectType || project?.category || 'Project'}</Text>
         </View>
 
+        <Text style={styles.propertyPrice}>{formatPropertyPrice(project) || "Price on request"}</Text>
+
         {/* ── Description ── */}
         <View style={styles.descriptionWrap}>
           <Text style={styles.descriptionText}>{descriptionTruncated}</Text>
@@ -1047,13 +1051,13 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           )}
         </View>
 
-        <UnitDetails project={project} />
-
         {/* ── Project Resources ── */}
-        {(brochureUrl || allGalleryImages.all.length > 0 || walkthroughUrl) && <View style={styles.sectionHeader}>
+        {<View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Project Resources</Text>
         </View>}
-        {(brochureUrl || allGalleryImages.all.length > 0 || walkthroughUrl) && <View style={styles.menuCard}>
+        {<View style={styles.menuCard}>
+          <MenuItemRow icon={Building2} label="Unit Availability" subtitle="Browse blocks, floors and available units"  onPress={() => openModal("units")} />
+
           {brochureUrl && <MenuItemRow
             icon={BookOpen}
             label="Project Brochure"
@@ -1068,9 +1072,9 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           />}
           {walkthroughUrl && <MenuItemRow
             icon={Video}
+            isLast
             label="Virtual Walkthrough"
             subtitle="Open project location in maps"
-            isLast
             onPress={() => openResource(walkthroughUrl)}
           />}
         </View>}
@@ -1103,10 +1107,12 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           />}
         </View>}
 
-        <View style={styles.contactSection}>
-          <Text style={styles.sectionTitle}>Contact details</Text>
+        <Text style={styles.sectionTitle}>Contact details</Text>
+        <View style={styles.menuCard}>
           <PropertyContact project={project} />
         </View>
+
+        <PropertySocialLinks onOpen={openResource} />
 
         {/* Bottom spacer for tab bar */}
         <View style={{ height: 100 }} />
@@ -1166,6 +1172,16 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           )}
         </ScrollView>
         {renderGalleryGrid()}
+      </BottomSheet>
+
+      <BottomSheet
+        expanded
+        visible={activeModal === "units"}
+        onClose={closeModal}
+        title="Unit Availability"
+        subtitle="Browse rooms by block and floor"
+      >
+        <UnitDetails project={project} />
       </BottomSheet>
 
       {/* ── Brochure Modal ── */}
@@ -1239,9 +1255,9 @@ export default PropertyDetailScreen;
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  propertyPrice: { color: theme.colors.blackText, fontFamily: theme.fonts.semiBold, fontSize: 20, marginBottom: 16 },
   categoryBadge: { alignSelf: 'flex-start', backgroundColor: '#FFF1E2', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 16 },
   categoryLabel: { color: '#A4530B', fontFamily: theme.fonts.medium, fontSize: 12, textTransform: 'capitalize' },
-  contactSection: { padding: 16, backgroundColor: '#FFFCF8', borderWidth: 1, borderColor: '#EFE8E0', borderRadius: 14, marginBottom: 16 },
   documentSheet: { height: SCREEN_HEIGHT * 0.88 },
   inlineDocument: { marginBottom: 20, borderWidth: 1, borderColor: '#E9E9E9', borderRadius: 12, padding: 10, backgroundColor: '#FAFAFA', overflow: 'hidden' },
   inlineDocumentTitle: { fontSize: 14, fontWeight: '600', color: '#191919', paddingHorizontal: 4, paddingTop: 4 },

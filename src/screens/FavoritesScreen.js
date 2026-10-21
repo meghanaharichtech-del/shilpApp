@@ -1,3 +1,4 @@
+import { formatPropertyPrice } from '../utils/propertyPrice';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 import FavoriteHeartOverlay from "../components/FavoriteHeartOverlay";
 import React, { useCallback, useState } from "react";
@@ -38,11 +39,8 @@ function FavoriteCard({ item, navigation }) {
   const [failedUrl, setFailedUrl] = useState(null);
   const imageUrl = firstImage(item);
   const isFailed = failedUrl === imageUrl;
-  const rawPrice =
-    item.price ?? item.plotDetails?.price ?? item.configurations?.[0]?.price;
-  const price = Number(rawPrice);
-  const hasPrice = Number.isFinite(price) && price > 0;
-  
+  const price = formatPropertyPrice(item);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -78,15 +76,12 @@ function FavoriteCard({ item, navigation }) {
             flexDirection: "row",
             justifyContent: "space-between",
             width: "100%",
+            alignItems: "center",
           }}
         >
-          <View>
             <Text style={styles.priceText}>
-              {hasPrice
-                ? `₹ ${price.toLocaleString("en-IN")}`
-                : "Price on request"}
+              {price || "Price on request"}
             </Text>
-          </View>
           <FavoriteHeartButton
             project={item}
             style={styles.heartButton}
@@ -216,7 +211,8 @@ const styles = StyleSheet.create({
     height: 112,
   },
   info: {
-    width: "60%",
+    flex: 1,
+    minWidth: 0,
     justifyContent: "space-between",
     gap: 6,
     paddingVertical: 2,
@@ -268,6 +264,7 @@ const styles = StyleSheet.create({
     // height: 44,
     alignItems: "center",
     justifyContent: "center",
+    // backgroundColor:"green"
   },
   empty: {
     flex: 1,
