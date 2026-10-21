@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, ChartNoAxesCombined, Heart, House, Search, Settings, UserRound } from 'lucide-react-native';
+import { Bell, ChartNoAxesCombined, DollarSign, Heart, House, Search, Settings, UserRound } from 'lucide-react-native';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import NotificationBadge from './NotificationBadge';
@@ -9,6 +9,7 @@ const tabIcons = {
   FavoritesScreen: Heart,
   DashboardScreen: ChartNoAxesCombined,
   SearchScreen: Search,
+  EarningsScreen: DollarSign,
   NotificationScreen: Bell,
   ProfileScreen: UserRound,
   SettingsScreen: Settings,

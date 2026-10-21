@@ -7,6 +7,7 @@ import FavoritesScreen from '../screens/FavoritesScreen';
 import SearchScreen from '../screens/SearchScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import ProfileScreen from '../auth/ProfileScreen';
+import EarningsScreen from '../screens/EarningsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -17,6 +18,7 @@ export default function BottomTab() {
       <Tab.Screen name="DashboardScreen" component={DashboardScreen} options={{ tabBarAccessibilityLabel: "Dashboard" }} />
       {/* <Tab.Screen name="FavoritesScreen" component={FavoritesScreen} options={{ tabBarAccessibilityLabel: "Favourites" }} /> */}
       {/* <Tab.Screen name="SearchScreen" component={SearchScreen} options={{ tabBarAccessibilityLabel: "Search" }} /> */}
+      <Tab.Screen name="EarningsScreen" component={EarningsScreen} options={{ tabBarAccessibilityLabel: "Earnings" }} />
       <Tab.Screen name="NotificationScreen" component={NotificationScreen} />
       <Tab.Screen name="ProfileScreen" component={ProfileScreen} />
     </Tab.Navigator>

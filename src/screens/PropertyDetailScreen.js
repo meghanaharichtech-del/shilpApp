@@ -833,7 +833,6 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
   const renderLegalContent = () => (
     <View>
-      {project?.factSheet?.fileUrl && <DocumentRow icon={FileText} title={project.factSheet.title || "Fact sheet"} url={buildFullUrl(project.factSheet.fileUrl)} />}
       {project?.brokeragePolicy?.pdfUrl && <DocumentRow icon={FileText} title="Brokerage policy" url={buildFullUrl(project.brokeragePolicy.pdfUrl)} />}
       {legalDocs.map((doc, idx) => (
         <DocumentRow
@@ -1064,6 +1063,12 @@ const PropertyDetailScreen = ({ navigation, route }) => {
             subtitle="View project brochure"
             onPress={() => openModal("brochure")}
           />}
+          <MenuItemRow
+            icon={FileText}
+            label="Fact Sheet"
+            subtitle="View project facts and specifications"
+            onPress={() => openModal("factSheet")}
+          />
           {allGalleryImages.all.length > 0 && <MenuItemRow
             icon={Images}
             label="Gallery"
@@ -1084,9 +1089,9 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         </View>}
 
         {/* ── Project Information ── */}
-        {(legalDocs.length > 0 || project?.factSheet?.fileUrl || project?.brokeragePolicy?.pdfUrl || constructionUpdates.length > 0 || creatives.length > 0) && <Text style={styles.sectionTitle}>Project Information</Text>}
-        {(legalDocs.length > 0 || project?.factSheet?.fileUrl || project?.brokeragePolicy?.pdfUrl || constructionUpdates.length > 0 || creatives.length > 0) && <View style={styles.menuCard}>
-          {(legalDocs.length > 0 || project?.factSheet?.fileUrl || project?.brokeragePolicy?.pdfUrl) && <MenuItemRow
+        {(legalDocs.length > 0 || project?.brokeragePolicy?.pdfUrl || constructionUpdates.length > 0 || creatives.length > 0) && <Text style={styles.sectionTitle}>Project Information</Text>}
+        {(legalDocs.length > 0 || project?.brokeragePolicy?.pdfUrl || constructionUpdates.length > 0 || creatives.length > 0) && <View style={styles.menuCard}>
+          {(legalDocs.length > 0 || project?.brokeragePolicy?.pdfUrl) && <MenuItemRow
             icon={ShieldCheck}
             label="Legal Documents"
             subtitle="Approvals, legal and compliance"
@@ -1193,6 +1198,16 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         subtitle="View project brochure"
       >
         {renderBrochureContent()}
+      </BottomSheet>
+
+      <BottomSheet
+        expanded
+        visible={activeModal === "factSheet"}
+        onClose={closeModal}
+        title="Fact Sheet"
+        subtitle="Project facts and specifications"
+      >
+        <DocumentRow title={project?.factSheet?.title || "Fact Sheet"} url={resources.factSheet} />
       </BottomSheet>
 
       {/* ── Walkthrough Modal ── */}
