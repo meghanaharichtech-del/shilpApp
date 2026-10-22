@@ -10,6 +10,11 @@ export function resolveMediaUrl(resource, baseUrl = BASEURL) {
     const base = new URL(baseUrl);
     const url = new URL(value, base);
     if (!['http:', 'https:'].includes(url.protocol)) return null;
+    if (['localhost', '127.0.0.1'].includes(url.hostname)) {
+      url.hostname = base.hostname;
+      url.port = base.port;
+      url.protocol = base.protocol;
+    }
     if (/^\/api\/media\/[a-f0-9]{24}(?:\.[a-z0-9]+)?$/i.test(url.pathname)) {
       return `${base.origin}${url.pathname}${url.search}${url.hash}`;
     }

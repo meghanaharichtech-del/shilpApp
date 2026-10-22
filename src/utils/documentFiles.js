@@ -1,3 +1,4 @@
+import { StorageUtils } from './StorageUtils';
 import { resolveMediaUrl } from './mediaUrl';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -38,7 +39,14 @@ export async function loadDocumentFile(url, title) {
   const target = new File(folder, documentFileName(url, title));
   let saved;
   try {
-    saved = await File.downloadFileAsync(drive?.downloadUrl || url, target, { idempotent: true });
+    const session = await StorageUtils.getItem('userData');
+    const token = session?.token || session?.data?.token || session?.accessToken || session?.data?.accessToken;
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    saved = await File.downloadFileAsync(drive?.downloadUrl || url, target, {
+      idempotent: true,
+      headers,
+    });
     if (!saved.exists || !saved.size) throw new Error('The downloaded file is empty.');
     const handle = saved.open();
     let bytes;
@@ -54,6 +62,7 @@ export async function loadDocumentFile(url, title) {
       const corrected = new File(folder, saved.name.replace(/\.[^.]+$/, `.${extension}`));
       if (corrected.exists) corrected.delete();
       saved.move(corrected);
+      saved = corrected;
     }
   } catch (error) {
     if (target.exists) target.delete();

@@ -27,7 +27,7 @@ try {
         await page.render({canvasContext:canvas.getContext('2d'),viewport,transform:[ratio,0,0,ratio,0,0]}).promise;
         pages.appendChild(canvas); page.cleanup();
         document.getElementById('status').style.display='none';
-        if(number===1)send('rendered',String(pdfDocument.numPages));
+        if(number===1){try{var t=canvas.toDataURL('image/jpeg',0.85);send('thumbnail',t);}catch(e){}send('rendered',String(pdfDocument.numPages));}
       }
     } catch(error) { document.getElementById('status').textContent='Unable to render PDF';send('error',error.message); }
   };

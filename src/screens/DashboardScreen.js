@@ -131,7 +131,7 @@ export default function DashboardScreen({ navigation }) {
           />
         }
       >
-        {loading && !dashboard ? <ActivityIndicator color="#FA7200" /> : null}
+        {/* {loading && !dashboard ? <ActivityIndicator color="#FA7200" /> : null} */}
         {error ? (
           <Pressable onPress={refresh} accessibilityRole="button">
             <Text style={styles.error}>{error} · Tap to retry</Text>
@@ -139,15 +139,7 @@ export default function DashboardScreen({ navigation }) {
         ) : null}
         {dashboard ? (
           <>
-            <View style={styles.heading}>
-              <Text style={styles.section}>Projects</Text>
-              <Pressable
-                onPress={() => openSearch()}
-                accessibilityRole="button"
-              >
-                <Text style={styles.link}>View all</Text>
-              </Pressable>
-            </View>
+           
             <View style={styles.grid}>
               <Metric
                 artwork="buildings"
@@ -161,22 +153,8 @@ export default function DashboardScreen({ navigation }) {
                 value={number(dashboard.overview?.upcomingProjects)}
               />
             </View>
-            <Text style={styles.section}>Availability</Text>
-            <View style={styles.grid}>
-              <Metric
-                icon={House}
-                artwork="homes"
-                label="Available properties"
-                value={number(dashboard.availability?.properties)}
-              />
-              <Metric
-                icon={Maximize}
-                artwork="area"
-                label="Available area"
-                value={`${number(dashboard.availability?.area)} sq ft`}
-              />
-            </View>
-            <Text style={styles.section}>Your business</Text>
+          
+            {/* <Text style={styles.section}>Your business</Text>
             <View style={styles.grid}>
               <Metric
                 icon={Users}
@@ -204,7 +182,7 @@ export default function DashboardScreen({ navigation }) {
                 label="Pending commission"
                 value={`₹${number(dashboard.stats?.pendingCommission)}`}
               />
-            </View>
+            </View> */}
             <Text style={styles.section}>Working areas</Text>
             {(dashboard.workingAreas || []).map((area) => (
               <Pressable
@@ -272,7 +250,7 @@ export default function DashboardScreen({ navigation }) {
   );
 }
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.purewhiteBackground },
+  screen: { flex: 1, backgroundColor: theme.colors.purewhiteBackground},
   header: {
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -280,6 +258,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+   
   },
   title: {
     flex: 1,
@@ -293,23 +272,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: theme.colors.borderlightgraycolour,
     borderRadius: 10,
-    height: 44,
-    width: 44,
+    height: 42,
+    width: 42,
   },
   notificationBadge: { right: -5, top: -5 },
-  content: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 112 },
+  content: { paddingHorizontal: 16, paddingBottom: 112 },
   heading: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+    // backgroundColor:"green"
   },
   section: {
     fontFamily: theme.fonts.semiBold,
     fontSize: 18,
     color: theme.colors.blackText,
     marginBottom: 12,
-    marginTop: 12,
+    // marginTop: 12,
   },
   grid: { flexDirection: "row", gap: 5 },
   metricArtwork: {

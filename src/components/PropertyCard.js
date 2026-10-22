@@ -44,7 +44,7 @@ export default function PropertyCard({ project: item, onPress }) {
     return (
       <Pressable
         style={styles.projectCard}
-        android_ripple={{ color: "#999898ff" }}
+        android_ripple={{ color: "#x" }}
         onPress={onPress}
       >
         <View style={styles.imageWrap}>
@@ -126,6 +126,7 @@ const styles = StyleSheet.create({
     padding: 6,
     gap: 10,
     alignSelf: "stretch",
+    // backgroundColor:"red"
   },
   imageWrap: { borderRadius: 8, overflow: "hidden", width: "40%" },
   projectImage: { ...StyleSheet.absoluteFillObject },

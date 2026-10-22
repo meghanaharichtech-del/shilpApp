@@ -23,3 +23,5 @@ export const PROJECT_DETAIL_API = (id) => PROJECTS_API + "/" + encodeURIComponen
 export const PROJECT_DOCUMENTS_API = (id) => PROJECT_DETAIL_API(id) + "/documents";
 export const FAVORITE_API = (id) => FAVORITES_API + "/" + encodeURIComponent(id);
 export const NOTIFICATION_READ_API = (id) => NOTIFICATIONS_API + "/" + encodeURIComponent(id) + "/read";
+export const OFFERS_API = BASEURL + "api/offers";
+export const OFFER_DETAIL_API = (id) => OFFERS_API + "/" + encodeURIComponent(id);
