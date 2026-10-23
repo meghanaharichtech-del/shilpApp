@@ -4,8 +4,10 @@ import { createFavoritesStore } from './favoritesStore';
 import { getFavorites, addFavorite, removeFavorite } from '../utils/favoriteApi';
 import { StorageUtils, onSessionChange } from '../utils/StorageUtils';
 import { onSessionExpired } from '../utils/brokerApi';
+import { useDataRefresh } from './DataRefreshContext';
 const FavoritesContext = createContext(null);
 export function FavoritesProvider({ children }) {
+  const { refreshVersion } = useDataRefresh();
   const [store] = useState(() => createFavoritesStore({ list: getFavorites, add: addFavorite, remove: removeFavorite }));
   const [snapshot, setSnapshot] = useState(() => store.getSnapshot());
   useEffect(() => store.subscribe(setSnapshot), [store]);
@@ -24,6 +26,9 @@ export function FavoritesProvider({ children }) {
     const subscription = AppState.addEventListener('change', state => {if(state === 'active') sync();});
     return () => {active=false;unsubscribe();expired();subscription.remove();};
   }, [store]);
+  useEffect(() => {
+    if (refreshVersion > 0) store.refresh().catch(() => {});
+  }, [refreshVersion, store]);
   const value = useMemo(() => ({ ...snapshot, isFavorite: store.isFavorite, toggleFavorite: store.toggle, refreshFavorites: store.refresh, clearFavorites: store.reset }), [snapshot, store]);
   return <FavoritesContext.Provider value={value}>{children}</FavoritesContext.Provider>;
 }

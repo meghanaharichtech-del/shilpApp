@@ -24,6 +24,7 @@ import {
 import { apiRequest, saveSession } from "../utils/brokerApi";
 import { StorageUtils } from "../utils/StorageUtils";
 import { theme } from "../utils/theme";
+import { useDataRefresh } from "../context/DataRefreshContext";
 
 const valueOrFallback = (value) => value || "Not provided";
 
@@ -42,14 +43,15 @@ function DetailRow({ icon: Icon, label, value, last = false }) {
 }
 
 export default function ProfileScreen({ navigation }) {
+  const { refreshVersion } = useDataRefresh();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const loadProfile = useCallback(async (refresh = false) => {
+  const loadProfile = useCallback(async (refresh = false, silently = false) => {
     if (refresh) setRefreshing(true);
-    else setLoading(true);
+    else if (!silently) setLoading(true);
     setError("");
     try {
       const data = await apiRequest(PROFILE_API, "get", undefined, true);
@@ -80,8 +82,8 @@ export default function ProfileScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      loadProfile();
-    }, [loadProfile]),
+      loadProfile(false, refreshVersion > 0);
+    }, [loadProfile, refreshVersion]),
   );
 
   if (loading && !profile)

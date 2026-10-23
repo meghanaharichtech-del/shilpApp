@@ -27,6 +27,7 @@ import {
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import NotificationBadge from "../components/NotificationBadge";
 import { useNotifications } from "../context/NotificationContext";
+import { useDataRefresh } from "../context/DataRefreshContext";
 import { apiError, apiRequest } from "../utils/brokerApi";
 import { theme } from "../utils/theme";
 
@@ -67,6 +68,7 @@ function Metric({ label, value, artwork, icon: Icon = Building2 }) {
 
 export default function DashboardScreen({ navigation }) {
   const { unreadCount } = useNotifications();
+  const { refreshVersion } = useDataRefresh();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -83,7 +85,7 @@ export default function DashboardScreen({ navigation }) {
   );
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, refreshVersion]);
   const refresh = () => {
     setLoading(true);
     load();

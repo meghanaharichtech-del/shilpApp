@@ -14,6 +14,7 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { NotificationProvider } from './src/context/NotificationContext';
+import { DataRefreshProvider } from './src/context/DataRefreshContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -42,9 +43,11 @@ export default function App() {
     <>
 
       <SafeAreaProvider>
-        <NotificationProvider>
-          <FavoritesProvider><AppNavigator /></FavoritesProvider>
-        </NotificationProvider>
+        <DataRefreshProvider>
+          <NotificationProvider>
+            <FavoritesProvider><AppNavigator /></FavoritesProvider>
+          </NotificationProvider>
+        </DataRefreshProvider>
       </SafeAreaProvider>
     </>
   );

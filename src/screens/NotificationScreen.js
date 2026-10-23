@@ -20,6 +20,7 @@ import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Bell, CheckCheck, RefreshCw, X } from "lucide-react-native";
 import { useNotifications } from "../context/NotificationContext";
+import { useDataRefresh } from "../context/DataRefreshContext";
 import {
   getNotifications,
   markAllNotificationsRead,
@@ -185,6 +186,7 @@ export default function NotificationScreen({ navigation }) {
   const readRequests = useRef(new Set());
   const loadingMoreRef = useRef(false);
   const { unreadCount, setUnreadCount, markOneRead } = useNotifications();
+  const { refreshVersion } = useDataRefresh();
   const observedUnreadCount = useRef(unreadCount);
 
   const loadPage = useCallback(
@@ -259,6 +261,12 @@ export default function NotificationScreen({ navigation }) {
     if (isFocused && unreadCount > previousCount && !loading)
       loadPage(1, "silent");
   }, [isFocused, loadPage, loading, unreadCount]);
+
+  useEffect(() => {
+    if (!isFocused || refreshVersion === 0) return undefined;
+    const timer = setTimeout(() => loadPage(1, "silent"), 0);
+    return () => clearTimeout(timer);
+  }, [isFocused, loadPage, refreshVersion]);
 
   const groupedData = useMemo(() => {
     const rows = [];

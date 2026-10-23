@@ -57,6 +57,7 @@ import { PROJECT_DETAIL_API, PROJECT_DOCUMENTS_API } from "../utils/ApiHelper";
 import { StorageUtils } from "../utils/StorageUtils";
 import CustomDialog from "../components/CustomDialog";
 import axios from "axios";
+import { useDataRefresh } from "../context/DataRefreshContext";
 import PdfDocumentViewer from "../components/PdfDocumentViewer";
 import { propertyResources } from "../utils/propertyResources";
 
@@ -328,10 +329,31 @@ const TimelineItem = ({ update, isLast }) => {
           </Text>
         ) : null}
         {desc ? <Text style={styles.timelineDesc}>{desc}</Text> : null}
-        {(update.images || []).map((image, index) => (
-          <ImagePreview key={`work-image-${index}`} uri={image} title={title}><Image source={imageSource(image)}
-            style={{ width: "100%", height: 180, borderRadius: 8, marginTop: 10 }} resizeMode="contain" /></ImagePreview>
-        ))}
+        {(update.images || []).filter(Boolean).length > 0 && (
+          <View style={styles.galleryGrid}>
+            {(update.images || []).filter(Boolean).map((image, index) => {
+              const imageUrl =
+                typeof image === "string"
+                  ? image
+                  : image?.url || image?.image || image?.fileUrl;
+              return (
+                <ImagePreview
+                  key={`work-image-${index}`}
+                  uri={imageUrl}
+                  title={`${title} image ${index + 1}`}
+                  style={styles.galleryThumb}
+                >
+                  <Image
+                    source={imageSource(imageUrl)}
+                    style={styles.galleryThumbImg}
+                    resizeMode="cover"
+                    defaultSource={FALLBACK_IMAGE}
+                  />
+                </ImagePreview>
+              );
+            })}
+          </View>
+        )}
         {progress != null && (
           <View style={styles.progressWrap}>
             <View style={styles.progressTrack}>
@@ -352,6 +374,7 @@ const TimelineItem = ({ update, isLast }) => {
 
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 const PropertyDetailScreen = ({ navigation, route }) => {
+  const { refreshVersion } = useDataRefresh();
   const initialProject = route.params?.project;
   const [project, setProject] = useState(initialProject || {});
   const carouselRef = useRef(null);
@@ -393,7 +416,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
     };
     fetchDetails().catch(() => {});
     return () => controller.abort();
-  }, [initialProject?._id, initialProject?.id]);
+  }, [initialProject?._id, initialProject?.id, refreshVersion]);
   const [descExpanded, setDescExpanded] = useState(false);
 
   // Modal states
@@ -591,7 +614,50 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
   const resources = propertyResources(project, buildFullUrl);
   const brochureUrl = resources.brochure;
+  const factSheetUrl = resources.factSheet;
   const walkthroughUrl = resources.walkthrough;
+  const hasUnitAvailability = Boolean(
+    project?.unitBlocks?.length ||
+    project?.floorAvailability?.length ||
+    project?.configurations?.length,
+  );
+  const projectResources = [
+    hasUnitAvailability && {
+      key: "units",
+      icon: Building2,
+      label: "Unit Availability",
+      subtitle: "Browse blocks, floors and available units",
+      onPress: () => openModal("units"),
+    },
+    brochureUrl && {
+      key: "brochure",
+      icon: BookOpen,
+      label: "Project Brochure",
+      subtitle: "View project brochure",
+      onPress: () => openModal("brochure"),
+    },
+    factSheetUrl && {
+      key: "fact-sheet",
+      icon: FileText,
+      label: "Fact Sheet",
+      subtitle: "View project facts and specifications",
+      onPress: () => openModal("factSheet"),
+    },
+    allGalleryImages.all.length > 0 && {
+      key: "gallery",
+      icon: Images,
+      label: "Gallery",
+      subtitle: "View project images and media",
+      onPress: () => openModal("gallery"),
+    },
+    walkthroughUrl && {
+      key: "walkthrough",
+      icon: Video,
+      label: "Virtual Walkthrough",
+      subtitle: "Open project location in maps",
+      onPress: () => openResource(walkthroughUrl),
+    },
+  ].filter(Boolean);
 
   // Plot / inventory data
   const plotLayout =
@@ -1022,7 +1088,19 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
      
 
-        {resources.directions && <Pressable style={styles.locationRow} accessibilityRole="link" onPress={() => openResource(resources.directions)}><MapPin size={18} color="#C96A10" /><Text style={styles.locationText}>Open map · {location || "Get directions"}</Text></Pressable>}
+        {resources.directions && (
+          <Pressable
+            style={styles.locationRow}
+            accessibilityRole="link"
+            onPress={() => openResource(resources.directions)}
+            hitSlop={6}
+          >
+            <MapPin size={18} color="#C96A10" />
+            <Text style={styles.locationText}>
+              Open map · {location || "Get directions"}
+            </Text>
+          </Pressable>
+        )}
 
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryLabel}>{project?.projectType || project?.category || 'Project'}</Text>
@@ -1051,38 +1129,22 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         </View>
 
         {/* ── Project Resources ── */}
-        {<View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Project Resources</Text>
-        </View>}
-        {<View style={styles.menuCard}>
-          <MenuItemRow icon={Building2} label="Unit Availability" subtitle="Browse blocks, floors and available units"  onPress={() => openModal("units")} />
-
-          {brochureUrl && <MenuItemRow
-            icon={BookOpen}
-            label="Project Brochure"
-            subtitle="View project brochure"
-            onPress={() => openModal("brochure")}
-          />}
-          <MenuItemRow
-            icon={FileText}
-            label="Fact Sheet"
-            subtitle="View project facts and specifications"
-            onPress={() => openModal("factSheet")}
-          />
-          {allGalleryImages.all.length > 0 && <MenuItemRow
-            icon={Images}
-            label="Gallery"
-            subtitle="View project images and media"
-            onPress={() => openModal("gallery")}
-          />}
-          {walkthroughUrl && <MenuItemRow
-            icon={Video}
-            isLast
-            label="Virtual Walkthrough"
-            subtitle="Open project location in maps"
-            onPress={() => openResource(walkthroughUrl)}
-          />}
-        </View>}
+        {projectResources.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Project Resources</Text>
+            </View>
+            <View style={styles.menuCard}>
+              {projectResources.map((resource, index) => (
+                <MenuItemRow
+                  key={resource.key}
+                  {...resource}
+                  isLast={index === projectResources.length - 1}
+                />
+              ))}
+            </View>
+          </>
+        )}
 
         {(plotLayout || project?.floorPlans?.length > 0) && <View style={styles.menuCard}>
           <MenuItemRow icon={LayoutGrid} label="Layout & Floor Plans" subtitle="View plan documents" isLast onPress={() => openModal("plots")} />
@@ -1202,12 +1264,12 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
       <BottomSheet
         expanded
-        visible={activeModal === "factSheet"}
+        visible={activeModal === "factSheet" && Boolean(factSheetUrl)}
         onClose={closeModal}
         title="Fact Sheet"
         subtitle="Project facts and specifications"
       >
-        <DocumentRow title={project?.factSheet?.title || "Fact Sheet"} url={resources.factSheet} />
+        <DocumentRow title={project?.factSheet?.title || "Fact Sheet"} url={factSheetUrl} />
       </BottomSheet>
 
       {/* ── Walkthrough Modal ── */}
@@ -1408,13 +1470,17 @@ const styles = StyleSheet.create({
   // Location
   locationRow: {
     alignItems: "center",
+    alignSelf: "flex-start",
     flexDirection: "row",
     gap: 5,
     marginBottom: 16,
+    maxWidth: "100%",
+ 
+    // flex:1,
   },
   locationText: {
     color: "#777777",
-    flex: 1,
+    flexShrink: 1,
     fontFamily: theme.fonts.regular,
     fontSize: 13,
   },
@@ -1460,6 +1526,7 @@ const styles = StyleSheet.create({
   },
   readMoreRow: {
     alignItems: "center",
+    alignSelf: "flex-start",
     flexDirection: "row",
     gap: 3,
     marginTop: 6,

@@ -10,8 +10,8 @@ const tabIcons = {
   DashboardScreen: ChartNoAxesCombined,
   SearchScreen: Search,
   EarningsScreen: IndianRupeeIcon,
-  OffersScreen: BadgePercent,
-  OfferScreen: BadgePercent,
+  OffersScreen: IndianRupeeIcon,
+  OfferScreen:IndianRupeeIcon ,
   NotificationScreen: Bell,
   ProfileScreen: UserRound,
   SettingsScreen: Settings,
@@ -86,9 +86,9 @@ const styles = StyleSheet.create({
   },
   wrapper: {
     bottom: 16,
-    left: 44,
+    left: 24,
     position: 'absolute',
-    right: 44,
+    right: 24,
   },
   tab: {
     alignItems: 'center',

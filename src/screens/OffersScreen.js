@@ -28,6 +28,7 @@ import Toast from "react-native-toast-message";
 import { getOffers, downloadOfferFile } from "../utils/offerApi";
 import { resolveMediaUrl } from "../utils/mediaUrl";
 import { useNotifications } from "../context/NotificationContext";
+import { useDataRefresh } from "../context/DataRefreshContext";
 import NotificationBadge from "../components/NotificationBadge";
 import { apiError } from "../utils/brokerApi";
 import { theme } from "../utils/theme";
@@ -437,7 +438,7 @@ function PdfModalViewer({ visible, offer, onClose, onDownload, downloading }) {
         </View>
 
         {/* Bottom Download Bar */}
-        <View style={styles.modalBottomBar}>
+        {/* <View style={styles.modalBottomBar}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Download and save brochure"
@@ -460,7 +461,7 @@ function PdfModalViewer({ visible, offer, onClose, onDownload, downloading }) {
               </View>
             )}
           </Pressable>
-        </View>
+        </View> */}
       </SafeAreaView>
     </Modal>
   );
@@ -468,6 +469,7 @@ function PdfModalViewer({ visible, offer, onClose, onDownload, downloading }) {
 
 export default function OffersScreen({ navigation }) {
   const { unreadCount } = useNotifications();
+  const { refreshVersion } = useDataRefresh();
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -475,9 +477,9 @@ export default function OffersScreen({ navigation }) {
   const [downloadingId, setDownloadingId] = useState(null);
   const [activeOffer, setActiveOffer] = useState(null);
 
-  const fetchOffers = useCallback(async (isRefresh = false) => {
+  const fetchOffers = useCallback(async (isRefresh = false, silently = false) => {
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (!silently) setLoading(true);
     setError("");
 
     try {
@@ -492,8 +494,12 @@ export default function OffersScreen({ navigation }) {
   }, []);
 
   useEffect(() => {
-    fetchOffers();
-  }, [fetchOffers]);
+    const timer = setTimeout(
+      () => fetchOffers(false, refreshVersion > 0),
+      0,
+    );
+    return () => clearTimeout(timer);
+  }, [fetchOffers, refreshVersion]);
 
   const handleDownload = async (offer) => {
     const offerId = offer?._id || offer?.id || offer?.title;

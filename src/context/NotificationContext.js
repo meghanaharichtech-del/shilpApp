@@ -9,6 +9,7 @@ import React, {
 import { AppState } from 'react-native';
 import { getNotifications, getNotificationUnreadCount } from '../utils/notificationApi';
 import { StorageUtils } from '../utils/StorageUtils';
+import { useDataRefresh } from './DataRefreshContext';
 
 const NotificationContext = createContext(null);
 const UNREAD_POLL_INTERVAL = 10000;
@@ -21,6 +22,7 @@ const hasToken = session => Boolean(
 );
 
 export function NotificationProvider({ children }) {
+  const { refreshVersion } = useDataRefresh();
   const [unreadCount, setUnreadCount] = useState(0);
   const [latestNotification, setLatestNotification] = useState(null);
   const requestRef = useRef(null);
@@ -77,6 +79,10 @@ export function NotificationProvider({ children }) {
       subscription.remove();
     };
   }, [refreshUnreadCount]);
+
+  useEffect(() => {
+    if (refreshVersion > 0) refreshUnreadCount().catch(() => {});
+  }, [refreshUnreadCount, refreshVersion]);
 
   const markOneRead = useCallback(() => {
     setUnreadCount(current => Math.max(0, current - 1));

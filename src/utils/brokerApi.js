@@ -1,5 +1,6 @@
 import axios from "axios";
 import { StorageUtils } from "./StorageUtils";
+import { notifyDataChanged } from "./dataRefreshEvents";
 const sessionExpiredListeners = new Set();
 export function onSessionExpired(listener) {
   sessionExpiredListeners.add(listener);
@@ -42,6 +43,7 @@ export async function apiRequest(
     });
     if (!response.data?.success)
       throw new Error(response.data?.error || "Unable to complete request");
+    if (method.toLowerCase() !== "get") notifyDataChanged();
     return options.rawResponse ? response.data : response.data.data;
   } catch (error) {
     if (
