@@ -376,6 +376,8 @@ const TimelineItem = ({ update, isLast }) => {
 const PropertyDetailScreen = ({ navigation, route }) => {
   const { refreshVersion } = useDataRefresh();
   const initialProject = route.params?.project;
+  console.log("------properties", initialProject);
+  
   const [project, setProject] = useState(initialProject || {});
   const carouselRef = useRef(null);
   const [slideIndex, setSlideIndex] = useState(0);
@@ -1135,9 +1137,9 @@ const PropertyDetailScreen = ({ navigation, route }) => {
               <Text style={styles.sectionTitle}>Project Resources</Text>
             </View>
             <View style={styles.menuCard}>
-              {projectResources.map((resource, index) => (
+              {projectResources.map(({ key, ...resource }, index) => (
                 <MenuItemRow
-                  key={resource.key}
+                  key={key}
                   {...resource}
                   isLast={index === projectResources.length - 1}
                 />

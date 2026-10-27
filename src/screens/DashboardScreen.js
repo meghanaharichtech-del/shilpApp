@@ -76,6 +76,7 @@ export default function DashboardScreen({ navigation }) {
     () =>
       apiRequest(DASHBOARD_API, "get", undefined, true)
         .then((data) => {
+          console.log("dashboard data from backend",data);
           setDashboard(data);
           setError("");
         })

@@ -91,6 +91,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
   const [projects, setProjects] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [query, setQuery] = useState(route?.params?.query || "");
+  
   const requestRef = useRef(0);
   const abortRef = useRef(null);
   const loadingMoreRef = useRef(false);
@@ -185,7 +186,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
         });
         isDebug && console.log("--------", response.data);
         isDebug && console.log("--------", accessToken);
-
+console.log("-------- listinggggg", response.data);
         if (!response.data?.success)
           throw new Error("Unable to load projects.");
         if (requestId !== requestRef.current || controller.signal.aborted)
