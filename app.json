@@ -4,17 +4,18 @@
     "slug": "shilpApp",
     "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/splash-icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.meghana1904.shilpApp"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/splash-icon.png",
+        "backgroundImage": "./assets/splash-icon.png",
+        "monochromeImage": "./assets/splash-icon.png"
       },
       "package": "com.meghana1904.shilpApp"
     },
@@ -22,7 +23,19 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+    "imageWidth": 1,
+          "resizeMode": "cover",
+          "backgroundColor": "#E6F4FE",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#000000"
+          }
+        }
+      ],
       [
         "expo-navigation-bar",
         {

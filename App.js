@@ -11,12 +11,11 @@ import {
   Manrope_700Bold,
   Manrope_800ExtraBold,
 } from '@expo-google-fonts/manrope';
-import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { NotificationProvider } from './src/context/NotificationContext';
 import { DataRefreshProvider } from './src/context/DataRefreshContext';
 
-SplashScreen.preventAutoHideAsync();
+
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -31,7 +30,7 @@ export default function App() {
 
   useEffect(() => {
     if (fontsLoaded) {
-      SplashScreen.hideAsync();
+      // SplashScreen.hide();
     }
   }, [fontsLoaded]);
 
