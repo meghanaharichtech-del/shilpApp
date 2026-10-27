@@ -22,7 +22,7 @@ export default function LoginScreen({ navigation }) {
       });
      isDebug && console.log("----- login url", LOGIN_API);
       
-     isDebug && console.log("------- login eror", data);
+     isDebug && console.log("------- login", data);
       
       await StorageUtils.setItem('pendingAuth', {
         ...data,

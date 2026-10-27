@@ -1,33 +1,26 @@
-import { PROFILE_API } from "../utils/ApiHelper";
 import React, { useEffect } from 'react';
 import { ImageBackground } from 'react-native';
 import { StorageUtils } from '../utils/StorageUtils';
-import { authDestination, apiRequest, saveSession } from '../utils/brokerApi';
+
+const MIN_SPLASH_DURATION_MS = 700;
 
 export default function SplashScreen({ navigation }) {
   useEffect(() => {
     let active = true;
+    const minimumSplashDuration = new Promise(resolve => {
+      setTimeout(resolve, MIN_SPLASH_DURATION_MS);
+    });
     async function restoreSession() {
-      let destination = 'LoginScreen';
+      let destination = 'OnboardingScreen1';
       try {
-        let session = await StorageUtils.getItem('userData');
+        const session = await StorageUtils.getItem('userData');
         if (session?.token) {
-          try {
-            session = await saveSession(await apiRequest(PROFILE_API, 'get', undefined, true));
-          } catch {
-            session = await StorageUtils.getItem('userData');
-          }
-          destination = authDestination(session);
+          destination = 'BottomTab';
         } else {
-          const pending = await StorageUtils.getItem('pendingAuth');
-          if (pending?.email && pending.authFlow === 'signup') {
-            destination = 'OtpScreen';
-          } else {
-            await StorageUtils.removeItem('pendingAuth');
-            destination = 'OnboardingScreen1';
-          }
+          await StorageUtils.removeItem('pendingAuth');
         }
       } finally {
+        await minimumSplashDuration;
         if (active) navigation.reset({ index: 0, routes: [{ name: destination }] });
       }
     }

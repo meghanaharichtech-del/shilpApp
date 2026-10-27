@@ -4,7 +4,7 @@ const sessionListeners = new Set();
 export const onSessionChange = listener => { sessionListeners.add(listener); return () => sessionListeners.delete(listener); };
 const notifySessionChange = () => sessionListeners.forEach(listener => { Promise.resolve().then(listener).catch(() => {}); });
 
-export const isDebug = true;
+export const isDebug = false;
 
 // AsyncStorage stores strings, so this wrapper serializes objects consistently.
 export const StorageUtils = {
