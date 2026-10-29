@@ -1,4 +1,5 @@
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import AppNavigator from './src/navigation/Appnavigator';
 import { FavoritesProvider } from './src/context/FavoritesContext';
 import {
@@ -40,7 +41,7 @@ export default function App() {
 
   return (
     <>
-
+      <StatusBar style="dark" />
       <SafeAreaProvider>
         <DataRefreshProvider>
           <NotificationProvider>

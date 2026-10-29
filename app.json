@@ -24,6 +24,12 @@
     },
     "plugins": [
       [
+        "expo-status-bar",
+        {
+          "style": "dark"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.jpeg",

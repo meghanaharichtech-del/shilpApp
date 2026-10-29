@@ -45,6 +45,7 @@ export default function AppNavigator() {
       <NavigationContainer ref={navigationRef} onReady={() => setCurrentRoute(navigationRef.getCurrentRoute()?.name)} onStateChange={() => setCurrentRoute(navigationRef.getCurrentRoute()?.name)}>
         <Stack.Navigator initialRouteName="SplashScreen" screenOptions={{
           headerShown: false,
+          statusBarStyle: 'dark',
           animation: 'slide_from_right',
           gestureEnabled: true,
           freezeOnBlur: true,
