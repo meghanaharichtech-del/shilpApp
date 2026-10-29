@@ -187,7 +187,7 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
         });
         isDebug && console.log("--------", response.data);
         isDebug && console.log("--------", accessToken);
-console.log("-------- listinggggg", response.data);
+isDebug && console.log("-------- listinggggg", response.data);
         if (!response.data?.success)
           throw new Error("Unable to load projects.");
         if (requestId !== requestRef.current || controller.signal.aborted)
@@ -210,8 +210,7 @@ console.log("-------- listinggggg", response.data);
       } catch (error) {
         if (requestId !== requestRef.current || controller.signal.aborted)
           return;
-        isDebug &&
-          console.log(
+        isDebug && console.log(
             "Failed to load projects:",
             error?.response?.status || error?.message,
           );
@@ -613,7 +612,8 @@ console.log("-------- listinggggg", response.data);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      {searchMode ? (
+      <StatusBar barStyle={searchMode ? "dark-content" : "light-content"} />
+      {searchMode ? ( 
         renderSearchRow()
       ) : (
         <View style={styles.header}>

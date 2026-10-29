@@ -1,4 +1,4 @@
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import AppNavigator from './src/navigation/Appnavigator';
 import { FavoritesProvider } from './src/context/FavoritesContext';
@@ -42,12 +42,17 @@ export default function App() {
   return (
     <>
       <StatusBar style="dark" />
-      <SafeAreaProvider>
-        <DataRefreshProvider>
-          <NotificationProvider>
-            <FavoritesProvider><AppNavigator /></FavoritesProvider>
-          </NotificationProvider>
-        </DataRefreshProvider>
+      <SafeAreaProvider style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+          {/* Recalculate insets below the status bar to avoid padding screens twice. */}
+          <SafeAreaProvider style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+            <DataRefreshProvider>
+              <NotificationProvider>
+                <FavoritesProvider><AppNavigator /></FavoritesProvider>
+              </NotificationProvider>
+            </DataRefreshProvider>
+          </SafeAreaProvider>
+        </SafeAreaView>
       </SafeAreaProvider>
     </>
   );

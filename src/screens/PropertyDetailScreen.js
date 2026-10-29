@@ -54,7 +54,7 @@ import {
 } from "lucide-react-native";
 import { theme } from "../utils/theme";
 import { PROJECT_DETAIL_API, PROJECT_DOCUMENTS_API } from "../utils/ApiHelper";
-import { StorageUtils } from "../utils/StorageUtils";
+import { isDebug, StorageUtils } from "../utils/StorageUtils";
 import CustomDialog from "../components/CustomDialog";
 import axios from "axios";
 import { useDataRefresh } from "../context/DataRefreshContext";
@@ -376,7 +376,7 @@ const TimelineItem = ({ update, isLast }) => {
 const PropertyDetailScreen = ({ navigation, route }) => {
   const { refreshVersion } = useDataRefresh();
   const initialProject = route.params?.project;
-  console.log("------properties", initialProject);
+  isDebug && console.log("------properties", initialProject);
   
   const [project, setProject] = useState(initialProject || {});
   const carouselRef = useRef(null);

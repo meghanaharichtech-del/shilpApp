@@ -49,7 +49,7 @@ export default function AppNavigator() {
           animation: 'slide_from_right',
           gestureEnabled: true,
           freezeOnBlur: true,
-          contentStyle: { backgroundColor: '#020202ff' },
+          contentStyle: { backgroundColor: '#FFFFFF' },
         }}>
           <Stack.Screen name="SplashScreen" component={SplashScreen} />
           <Stack.Screen name="OnboardingScreen1" component={OnboardingScreen1} />
