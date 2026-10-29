@@ -966,7 +966,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: "#FFFFFF",
     zIndex: 20,
-    elevation: 4,
+    elevation: 1,
   },
   hiddenSearchRow: { opacity: 0 },
   stickySearchRow: {
