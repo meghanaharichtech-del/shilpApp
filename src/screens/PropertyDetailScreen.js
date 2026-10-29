@@ -656,7 +656,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
       key: "walkthrough",
       icon: Video,
       label: "Virtual Walkthrough",
-      subtitle: "Open project location in maps",
+      subtitle: "Watch project video on YouTube",
       onPress: () => openResource(walkthroughUrl),
     },
   ].filter(Boolean);
@@ -874,7 +874,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
               Experience {projectName} in 3D
             </Text>
             <Text style={styles.walkthroughSub}>
-              Tap to open virtual walkthrough
+              Tap to watch on YouTube
             </Text>
           </View>
         </Pressable>
@@ -1177,9 +1177,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         </View>}
 
         <Text style={styles.sectionTitle}>Contact details</Text>
-        <View style={styles.menuCard}>
-          <PropertyContact project={project} />
-        </View>
+        <PropertyContact project={project} />
 
         <PropertySocialLinks onOpen={openResource} />
 
@@ -1279,7 +1277,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
         visible={activeModal === "walkthrough"}
         onClose={closeModal}
         title="Virtual Walkthrough"
-        subtitle="Open project location in maps"
+        subtitle="Watch project video on YouTube"
       >
         {renderWalkthroughContent()}
       </BottomSheet>

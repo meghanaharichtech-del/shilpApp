@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeTab: {
-    backgroundColor: '#28282A',
+    backgroundColor: '#2a2828ff',
   },
   pressedTab: {
     opacity: Platform.OS === 'ios' ? 0.72 : 0.85,

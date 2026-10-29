@@ -4,17 +4,21 @@ import { test } from 'node:test';
 const source = readFileSync(new URL('../src/utils/propertyResources.js', import.meta.url), 'utf8');
 const { propertyResources } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 const resolve = value => value || null;
-test('Virtual Walkthrough opens the same project map as the location icon', () => {
-  const project = { virtualTourUrl: 'https://files.test/tour.mp4', directionLink: 'https://maps.google.com/project', brochure: 'https://files.test/brochure.pdf' };
-  assert.deepEqual(propertyResources(project, resolve), { walkthrough: project.directionLink, directions: project.directionLink, brochure: project.brochure });
+test('walkthrough opens YouTube separately from the map action', () => {
+  const project = { virtualWalkthroughLink: 'https://youtu.be/abcdefghijk', directionLink: 'https://maps.google.com/project', brochure: 'https://files.test/brochure.pdf' };
+  assert.deepEqual(propertyResources(project, resolve), { walkthrough: project.virtualWalkthroughLink, directions: project.directionLink, brochure: project.brochure, factSheet: null });
 });
-test('walkthrough uses location coordinates when a directions URL is missing', () => {
+test('coordinates only supply the map, never a virtual walkthrough', () => {
   const result = propertyResources({ location: { lat: 23.03, lng: 72.51 } }, resolve);
-  assert.equal(result.walkthrough, result.directions);
-  assert.ok(result.walkthrough.includes('23.03,72.51'));
+  assert.equal(result.walkthrough, null);
+  assert.ok(result.directions.includes('23.03,72.51'));
 });
-test('video URL cannot become the walkthrough destination when location is missing', () => {
-  assert.equal(propertyResources({ virtualTourUrl: 'https://files.test/tour.mp4' }, resolve).walkthrough, null);
+test('a walkthrough works without a map and missing video stays hidden', () => {
+  const video = 'https://www.youtube.com/watch?v=abcdefghijk';
+  const result = propertyResources({ virtualWalkthroughLink: video }, resolve);
+  assert.equal(result.walkthrough, video);
+  assert.equal(result.directions, null);
+  assert.equal(propertyResources({ directionLink: 'https://maps.google.com/project' }, resolve).walkthrough, null);
 });
 
 test('missing coordinates do not generate an incorrect map location', () => {

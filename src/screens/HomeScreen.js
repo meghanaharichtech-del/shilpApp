@@ -870,7 +870,7 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 16, paddingBottom: 104 },
   header: {
     backgroundColor: "#FFFFFF",
-    paddingBottom: 10,
+    paddingVertical: 10,
     paddingLeft: 10,
     paddingRight:16,
     // height: 70,
@@ -883,7 +883,6 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.extraBold,
     fontSize: 26,
     letterSpacing: 3,
-    // marginLeft: 3,
   },
   logoGroup: {
     color: "#8B8B8B",

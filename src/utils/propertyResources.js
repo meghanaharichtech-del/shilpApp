@@ -13,8 +13,7 @@ export function propertyResources(project, resolveUrl) {
   return {
     brochure: resolveUrl(value(project?.brochure || project?.brochureUrl || project?.brochurePdf)),
     factSheet: resolveUrl(value(project?.factSheet)),
-    // Virtual Walkthrough is the project map location in the mobile app.
-    walkthrough: resolveUrl(directions),
+    walkthrough: resolveUrl(value(project?.virtualWalkthroughLink)),
     directions: resolveUrl(directions),
   };
 }
