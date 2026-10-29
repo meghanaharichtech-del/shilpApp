@@ -616,8 +616,8 @@ console.log("-------- listinggggg", response.data);
         renderSearchRow()
       ) : (
         <View style={styles.header}>
-          <View>
-            <Text style={styles.logo}>SHILP</Text>
+          <View style={{justifyContent:'center',alignItems:'center', padding:0}}>
+           <Image source={require('../../assets/splash-icon.png')} style={{width:110, height:40}}  />
           </View>
           <View style={styles.headerActions}>
             <Pressable
@@ -870,8 +870,9 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 16, paddingBottom: 104 },
   header: {
     backgroundColor: "#FFFFFF",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingBottom: 10,
+    paddingLeft: 10,
+    paddingRight:16,
     // height: 70,
     alignItems: "center",
     flexDirection: "row",
