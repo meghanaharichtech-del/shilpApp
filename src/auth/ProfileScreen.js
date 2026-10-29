@@ -206,7 +206,7 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: theme.colors.backgroundmaincolor, flex: 1 },
+  screen: { backgroundColor: theme.colors.purewhiteBackground, flex: 1 },
   center: { alignItems: "center", justifyContent: "center" },
   content: { paddingHorizontal: 16, paddingBottom: 112, gap:10
    },
