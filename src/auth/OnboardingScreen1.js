@@ -103,7 +103,6 @@ const OnboardingScreen1 = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* <StatusBar barStyle="light-content" translucent backgroundColor="transparent" /> */}
       <FlatList
         ref={flatListRef}
         data={DATA}

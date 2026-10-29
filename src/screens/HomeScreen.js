@@ -612,7 +612,6 @@ isDebug && console.log("-------- listinggggg", response.data);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <StatusBar barStyle={searchMode ? "dark-content" : "light-content"} />
       {searchMode ? ( 
         renderSearchRow()
       ) : (

@@ -41,7 +41,7 @@ export default function App() {
 
   return (
     <>
-      <StatusBar style="dark" />
+  
       <SafeAreaProvider style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
         <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
           {/* Recalculate insets below the status bar to avoid padding screens twice. */}
