@@ -155,17 +155,6 @@ const statusLabel = (status) => {
     .join(" ");
 };
 
-const statusColor = (status) => {
-  switch (status) {
-    case "ready-possession":
-      return { bg: "#E8F5E9", text: "#2E7D32", icon: "#2E7D32" };
-    case "under-construction":
-      return { bg: "#FFF3E0", text: "#E65100", icon: "#E65100" };
-    default:
-      return { bg: "#FFF3E0", text: "#E65100", icon: "#E65100" };
-  }
-};
-
 // ─── Menu Item Component ───────────────────────────────────────────────────────
 const MenuItemRow = ({ icon: Icon, label, subtitle, isLast, onPress }) => (
   <Pressable
@@ -354,7 +343,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
   const { refreshVersion } = useDataRefresh();
   const initialProject = route.params?.project;
   isDebug && console.log("------properties", initialProject);
-  
+
   const [project, setProject] = useState(initialProject || {});
   const carouselRef = useRef(null);
   const [slideIndex, setSlideIndex] = useState(0);
@@ -598,7 +587,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
   }, [project]);
 
   const status = project?.status;
-  const colors = statusColor(status);
+  const formattedPrice = formatPropertyPrice(project);
   const projectType = project?.projectType || project?.category || "Project";
   const pincode = useMemo(() => extractPincode(project), [project]);
   const totalUnits =
@@ -1088,20 +1077,23 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           )}
         </View>
 
-        {/* ── Title & Status ── */}
-        <View style={styles.titleRow}>
-          <Text style={styles.projectName}>{projectName}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: colors.bg }]}>
-            <HardHat size={13} color={colors.icon} />
-            <Text style={[styles.statusBadgeText, { color: colors.text }]}>
-              {statusLabel(status)}
-            </Text>
+        <View style={styles.propertySummaryRow}>
+          <Text style={[styles.propertyPrice, !formattedPrice && styles.priceOnApplication]}>
+            {formattedPrice || "Price on Application"}
+          </Text>
+          <View style={styles.propertyBadges}>
+            <View style={styles.categoryBadge}>
+              <Building2 size={13} color="#333333" strokeWidth={1.8} />
+              <Text style={styles.categoryLabel}>{projectType}</Text>
+            </View>
+            <View style={styles.statusBadge}>
+              <HardHat size={13} color="#333333" strokeWidth={1.8} />
+              <Text style={styles.statusBadgeText}>{statusLabel(status)}</Text>
+            </View>
           </View>
         </View>
 
-     
-
-        {resources.directions && (
+         {resources.directions && (
           <Pressable
             style={styles.locationRow}
             accessibilityRole="link"
@@ -1115,33 +1107,6 @@ const PropertyDetailScreen = ({ navigation, route }) => {
           </Pressable>
         )}
 
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryLabel}>{project?.projectType || project?.category || 'Project'}</Text>
-        </View>
-
-        <Text style={styles.propertyPrice}>{formatPropertyPrice(project) || "Price on request"}</Text>
-
-        {/* ── Description ── */}
-        <View style={styles.descriptionWrap}>
-          <Text style={styles.descriptionText}>{descriptionTruncated}</Text>
-          {description.length > 150 && (
-            <Pressable
-              onPress={() => setDescExpanded(!descExpanded)}
-              style={styles.readMoreRow}
-            >
-              <Text style={styles.readMoreText}>
-                {descExpanded ? "Show less" : "Read more"}
-              </Text>
-              {descExpanded ? (
-                <ChevronUp size={16} color="#191919" />
-              ) : (
-                <ChevronDown size={16} color="#191919" />
-              )}
-            </Pressable>
-          )}
-        </View>
-
-        {/* ── Project Resources ── */}
         {projectResources.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -1343,9 +1308,12 @@ export default PropertyDetailScreen;
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  propertyPrice: { color: theme.colors.blackText, fontFamily: theme.fonts.semiBold, fontSize: 20, marginBottom: 16 },
-  categoryBadge: { alignSelf: 'flex-start', backgroundColor: '#FFF1E2', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 16 },
-  categoryLabel: { color: '#A4530B', fontFamily: theme.fonts.medium, fontSize: 12, textTransform: 'capitalize' },
+  propertySummaryRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 12, rowGap: 8, marginBottom: 10 },
+  propertyPrice: { color: '#121212', fontFamily: theme.fonts.bold, fontSize: 24, lineHeight: 32, flexGrow: 1, flexShrink: 1 },
+  priceOnApplication: { color: '#555555', fontFamily: theme.fonts.medium, fontSize: 15, lineHeight: 22 },
+  propertyBadges: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, flexShrink: 1 },
+  categoryBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#F5F5F5', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 6, flexShrink: 1 },
+  categoryLabel: { color: '#444444', fontFamily: theme.fonts.medium, fontSize: 11, textTransform: 'capitalize', flexShrink: 1 },
   documentSheet: { height: SCREEN_HEIGHT * 0.88 },
   inlineDocument: { marginBottom: 12, borderWidth: 1, borderColor: '#E9E9E9', borderRadius: 14, padding: 10, backgroundColor: '#FFFFFF', overflow: 'hidden' },
   inlineDocumentTitle: { fontSize: 14, fontWeight: '600', color: '#191919', paddingHorizontal: 4, paddingTop: 4 },
@@ -1467,14 +1435,18 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   statusBadge: {
+    backgroundColor: "#F5F5F5",
+    flexShrink: 1,
     alignItems: "center",
     borderRadius: 8,
     flexDirection: "row",
     gap: 5,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 6,
   },
   statusBadgeText: {
+    color: "#444444",
+    flexShrink: 1,
     fontFamily: theme.fonts.medium,
     fontSize: 11,
   },
@@ -1484,9 +1456,9 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     flexDirection: "row",
     gap: 5,
-    marginBottom: 16,
+    marginBottom: 6,
     maxWidth: "100%",
- 
+
     // flex:1,
   },
   locationText: {
@@ -1502,7 +1474,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: "row",
-    marginBottom: 16,
+    marginBottom: 6,
     overflow: "hidden",
   },
   statPill: {
@@ -1525,10 +1497,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.regular,
     fontSize: 11,
   },
-  // Description
-  descriptionWrap: {
-    marginBottom: 20,
-  },
+
   descriptionText: {
     color: "#555555",
     fontFamily: theme.fonts.regular,
