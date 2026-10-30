@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { Buffer } from 'node:buffer';
+import { test } from 'node:test';
+const source = readFileSync(new URL('../src/utils/requestCache.js', import.meta.url), 'utf8');
+const { createRequestCache } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+test('reuses fresh data, isolates sessions, and refreshes expired or forced entries', async () => {
+  let time = 0, calls = 0;
+  const cache = createRequestCache({ ttl: 60, now: () => time });
+  const load = () => ++calls;
+  assert.equal(await cache.load('a', 'detail', load), 1);
+  assert.equal(await cache.load('a', 'detail', load), 1);
+  assert.equal(await cache.load('b', 'detail', load), 2);
+  time = 61;
+  assert.equal(cache.peek('a', 'detail'), 1);
+  assert.equal(await cache.load('a', 'detail', load), 3);
+  assert.equal(await cache.load('a', 'detail', load, { force: true }), 4);
+});
+test('concurrent readers share a request and failures can be retried', async () => {
+  const cache = createRequestCache();
+  let calls = 0;
+  const load = async () => ++calls;
+  assert.deepEqual(await Promise.all([cache.load('a', 'x', load), cache.load('a', 'x', load)]), [1, 1]);
+  await assert.rejects(cache.load('a', 'bad', () => { throw new Error('offline'); }));
+  assert.equal(await cache.load('a', 'bad', load), 2);
+});
+test('clear prevents a late response from repopulating the cache; entries are bounded', async () => {
+  const cache = createRequestCache({ limit: 1 });
+  let finish;
+  const request = cache.load('a', 'old', () => new Promise(resolve => { finish = resolve; }));
+  await Promise.resolve();
+  cache.clear();
+  finish('old');
+  await request;
+  assert.equal(cache.peek('a', 'old'), undefined);
+  await cache.load('a', 'one', () => 1);
+  await cache.load('a', 'two', () => 2);
+  assert.equal(cache.peek('a', 'one'), undefined);
+  assert.equal(cache.peek('a', 'two'), 2);
+});

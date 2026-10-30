@@ -21,6 +21,7 @@ import {
   Linking,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -59,6 +60,7 @@ import CustomDialog from "../components/CustomDialog";
 import axios from "axios";
 import { useDataRefresh } from "../context/DataRefreshContext";
 import PdfDocumentViewer from "../components/PdfDocumentViewer";
+import { projectRequestCache } from "../utils/requestCache";
 import { propertyResources } from "../utils/propertyResources";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -253,8 +255,8 @@ const CategoryChip = ({ label, count, active, onPress }) => (
 // ─── Document Row ──────────────────────────────────────────────────────────────
 const DocumentRow = ({ title, url }) => (
   <View style={styles.inlineDocument}>
-    <Text style={styles.inlineDocumentTitle}>{title}</Text>
-    {url && /\.(png|jpe?g|webp)(?:[?#]|$)/i.test(url) ? <ImagePreview uri={url} title={title}><Image source={{ uri: url }} style={{ height: 280, width: '100%' }} resizeMode="contain" /><Text style={styles.menuSubtitle}>Tap to view full image</Text></ImagePreview> : url ? <PdfDocumentViewer key={`${url}-${title}`} document={{ url, title }} height={300} /> : <Text style={styles.emptyModalText}>Document not uploaded yet</Text>}
+    {(!url || /\.(png|jpe?g|webp)(?:[?#]|$)/i.test(url)) && <Text style={styles.inlineDocumentTitle}>{title}</Text>}
+    {url && /\.(png|jpe?g|webp)(?:[?#]|$)/i.test(url) ? <ImagePreview uri={url} title={title}><Image source={{ uri: url }} style={{ height: 280, width: '100%' }} resizeMode="contain" /><Text style={styles.menuSubtitle}>Tap to view full image</Text></ImagePreview> : url ? <PdfDocumentViewer key={`${url}-${title}`} document={{ url, title }} /> : <Text style={styles.emptyModalText}>Document not uploaded yet</Text>}
   </View>
 );
 
@@ -329,31 +331,6 @@ const TimelineItem = ({ update, isLast }) => {
           </Text>
         ) : null}
         {desc ? <Text style={styles.timelineDesc}>{desc}</Text> : null}
-        {(update.images || []).filter(Boolean).length > 0 && (
-          <View style={styles.galleryGrid}>
-            {(update.images || []).filter(Boolean).map((image, index) => {
-              const imageUrl =
-                typeof image === "string"
-                  ? image
-                  : image?.url || image?.image || image?.fileUrl;
-              return (
-                <ImagePreview
-                  key={`work-image-${index}`}
-                  uri={imageUrl}
-                  title={`${title} image ${index + 1}`}
-                  style={styles.galleryThumb}
-                >
-                  <Image
-                    source={imageSource(imageUrl)}
-                    style={styles.galleryThumbImg}
-                    resizeMode="cover"
-                    defaultSource={FALLBACK_IMAGE}
-                  />
-                </ImagePreview>
-              );
-            })}
-          </View>
-        )}
         {progress != null && (
           <View style={styles.progressWrap}>
             <View style={styles.progressTrack}>
@@ -387,38 +364,60 @@ const PropertyDetailScreen = ({ navigation, route }) => {
   slideIndexRef.current = slideIndex;
   const slideWidth = SCREEN_WIDTH - 32;
 
-  // Sync when route params change
-  useEffect(() => {
-    if (initialProject) {
-      setProject((prev) => ({ ...initialProject, ...prev }));
-    }
-  }, [initialProject]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [detailError, setDetailError] = useState("");
+  const [refreshRequest, setRefreshRequest] = useState(0);
+  const projectId = initialProject?._id || initialProject?.id;
 
-  // Both APIs are authoritative: detail supplies media and documents supplies file URLs.
+  // Reset before rendering a different property rather than showing the old one.
+  const [displayedProjectId, setDisplayedProjectId] = useState(projectId);
+  if (displayedProjectId !== projectId) {
+    setDisplayedProjectId(projectId);
+    setProject(initialProject || {});
+    setDetailError("");
+  }
+
   useEffect(() => {
-    const pid = initialProject?._id || initialProject?.id;
-    if (!pid) return;
-    const controller = new AbortController();
+    if (!projectId) return;
+    let active = true;
     const fetchDetails = async () => {
       const userData = await StorageUtils.getItem("userData");
-      const accessToken = userData?.token || userData?.accessToken || userData?.data?.token || userData?.data?.accessToken;
-      if (!accessToken || controller.signal.aborted) return;
-      const config = { headers: { Authorization: `Bearer ${accessToken}` }, signal: controller.signal };
-      const [detail, documents] = await Promise.allSettled([
-        axios.get(PROJECT_DETAIL_API(pid), config),
-        axios.get(PROJECT_DOCUMENTS_API(pid), config),
+      const token = userData?.token || userData?.accessToken || userData?.data?.token || userData?.data?.accessToken;
+      if (!active) return;
+      setDetailError("");
+      if (!token) throw new Error("Your session has expired.");
+      const detailUrl = PROJECT_DETAIL_API(projectId);
+      const documentsUrl = PROJECT_DOCUMENTS_API(projectId);
+      const cachedDetail = projectRequestCache.peek(token, detailUrl);
+      const cachedDocuments = projectRequestCache.peek(token, documentsUrl);
+      if (cachedDetail || cachedDocuments) setProject(prev => ({ ...prev, ...cachedDetail, ...cachedDocuments }));
+      const config = { headers: { Authorization: `Bearer ${token}` }, timeout: 30000 };
+      const load = (url, extract) => projectRequestCache.load(token, url, async () => {
+        const response = await axios.get(url, config);
+        if (!response.data?.success) throw new Error("Unable to refresh project details.");
+        return extract(response.data);
+      }, { force: refreshRequest > 0 });
+      const results = await Promise.allSettled([
+        load(detailUrl, data => data.project),
+        load(documentsUrl, data => ({ documents: data.documents })),
       ]);
-      // console.log("------ projects details", JSON.stringify(detail, null, 2));
-      
-      if (controller.signal.aborted) return;
-      setProject(prev => ({ ...prev,
-        ...(detail.status === "fulfilled" && detail.value.data?.success ? detail.value.data.project : {}),
-        ...(documents.status === "fulfilled" && documents.value.data?.success ? { documents: documents.value.data.documents } : {}),
-      }));
+      if (!active) return;
+      setProject(prev => ({ ...prev, ...results.reduce((data, result) =>
+        result.status === "fulfilled" ? { ...data, ...result.value } : data, {}) }));
+      if (results.some(result => result.status === "rejected")) {
+        setDetailError("Some project data could not refresh. Showing available data. Pull down to retry.");
+      }
     };
-    fetchDetails().catch(() => {});
-    return () => controller.abort();
-  }, [initialProject?._id, initialProject?.id, refreshVersion]);
+    fetchDetails().catch(() => {
+      if (active) setDetailError("Could not refresh project details. Showing available data. Pull down to retry.");
+    }).finally(() => { if (active) setRefreshing(false); });
+    return () => { active = false; };
+  }, [projectId, refreshVersion, refreshRequest]);
+  const refreshDetails = () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    setRefreshRequest(version => version + 1);
+  };
   const [descExpanded, setDescExpanded] = useState(false);
 
   // Modal states
@@ -827,7 +826,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
   const renderGalleryGrid = () => (
     <View style={styles.galleryGrid}>
       {filteredGallery.map((img, idx) => (
-        <ImagePreview key={`gal-${idx}`} uri={img.url} title={`Gallery image ${idx + 1}`} style={styles.galleryThumb}>
+        <ImagePreview key={`gal-${idx}`} uri={img.url} images={filteredGallery} title={`Gallery image ${idx + 1}`} style={styles.galleryThumb}>
           <Image
             source={imageSource(img.url)}
             style={styles.galleryThumbImg}
@@ -915,27 +914,35 @@ const PropertyDetailScreen = ({ navigation, route }) => {
     </View>
   );
 
-  const renderConstructionContent = () => (
-    <View>
-      {Array.isArray(constructionUpdates) && constructionUpdates.length > 0 ? (
-        constructionUpdates.map((update, idx) => (
-          <TimelineItem
-            key={`cu-${idx}`}
-            update={update}
-            isLast={idx === constructionUpdates.length - 1}
-          />
-        ))
+  const renderConstructionContent = () => {
+    const updates = Array.isArray(constructionUpdates) ? constructionUpdates : [];
+    const photos = updates.flatMap((update, updateIndex) =>
+      (Array.isArray(update?.images) ? update.images : []).map((image, imageIndex) => ({
+        url: typeof image === "string" ? image : image?.url || image?.image || image?.fileUrl,
+        title: `${update?.title || `Work update ${updateIndex + 1}`} image ${imageIndex + 1}`,
+      }))).filter(photo => resolveMediaUrl(photo.url));
+    return <View>
+      {photos.length > 0 && <View style={[styles.galleryGrid, { marginBottom: 16 }]}>
+        {photos.map((photo, index) => (
+          <ImagePreview key={`construction-photo-${index}`} uri={photo.url} images={photos} title={photo.title} style={styles.galleryThumb}>
+            <Image source={imageSource(photo.url)} style={styles.galleryThumbImg} resizeMode="cover" defaultSource={FALLBACK_IMAGE} />
+          </ImagePreview>
+        ))}
+      </View>}
+      {updates.length > 0 ? (
+        // Plain work-update photos need only the grid; retain actual timeline details.
+        (project?.constructionUpdates || project?.constructionProgress || project?.updates) ? updates.map((update, idx) => (
+          <TimelineItem key={`cu-${idx}`} update={update} isLast={idx === updates.length - 1} />
+        )) : null
       ) : (
         <View style={styles.emptyModalState}>
           <HardHat size={32} color="#CCCCCC" />
           <Text style={styles.emptyModalText}>No construction updates yet</Text>
-          <Text style={styles.emptyModalSubtext}>
-            Progress updates will be posted as the project develops
-          </Text>
+          <Text style={styles.emptyModalSubtext}>Progress updates will be posted as the project develops</Text>
         </View>
       )}
-    </View>
-  );
+    </View>;
+  };
 
   const renderCreativesContent = () => (
     <View>
@@ -950,6 +957,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
               <ImagePreview
                 uri={url}
                 title={caption || 'Creative'}
+                images={creatives}
                 key={`cr-${idx}`}
                 style={styles.creativeThumb}
               >
@@ -999,9 +1007,12 @@ const PropertyDetailScreen = ({ navigation, route }) => {
 
       <ScrollView
         style={styles.scrollView}
+        alwaysBounceVertical
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshDetails} tintColor="#8D5B2E" colors={["#8D5B2E"]} />}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {detailError ? <Text accessibilityRole="alert" style={{ color: "#B3261E", padding: 16 }}>{detailError}</Text> : null}
         {/* ── Image Carousel ── */}
         <View style={styles.carouselWrap}>
           <ScrollView
@@ -1014,7 +1025,7 @@ const PropertyDetailScreen = ({ navigation, route }) => {
             decelerationRate="fast"
           >
             {carouselImages.map((img, index) => (
-              <ImagePreview key={`img-${index}`} uri={img} style={styles.imageSlide}>
+              <ImagePreview key={`img-${index}`} uri={img} images={carouselImages} style={styles.imageSlide}>
                 <Image
                   source={imageSource(img)}
                   style={styles.carouselImage}
@@ -1336,7 +1347,7 @@ const styles = StyleSheet.create({
   categoryBadge: { alignSelf: 'flex-start', backgroundColor: '#FFF1E2', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 16 },
   categoryLabel: { color: '#A4530B', fontFamily: theme.fonts.medium, fontSize: 12, textTransform: 'capitalize' },
   documentSheet: { height: SCREEN_HEIGHT * 0.88 },
-  inlineDocument: { marginBottom: 20, borderWidth: 1, borderColor: '#E9E9E9', borderRadius: 12, padding: 10, backgroundColor: '#FAFAFA', overflow: 'hidden' },
+  inlineDocument: { marginBottom: 12, borderWidth: 1, borderColor: '#E9E9E9', borderRadius: 14, padding: 10, backgroundColor: '#FFFFFF', overflow: 'hidden' },
   inlineDocumentTitle: { fontSize: 14, fontWeight: '600', color: '#191919', paddingHorizontal: 4, paddingTop: 4 },
   unitDetails: { marginBottom: 20, gap: 8 },
   unitFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 10, borderWidth: 1, borderColor: '#EFE8E0', borderRadius: 14, backgroundColor: '#FFFCF8' },

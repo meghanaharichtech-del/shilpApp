@@ -1,8 +1,21 @@
 export function propertyResources(project, resolveUrl) {
   const value = resource => {
     if (typeof resource === 'string') return resource;
-    return resource?.url || resource?.fileUrl || resource?.uri || null;
+    return resource?.url || resource?.fileUrl || resource?.uri || resource?.file || resource?.link || null;
   };
+  // Factsheets can be stored on the project or returned by the documents API.
+  const factSheetDocuments = Array.isArray(project?.documents)
+    ? project.documents.filter(document =>
+      String(document?.type || '').toLowerCase().replace(/[\s_-]/g, '') === 'factsheet')
+    : [];
+  const factSheet = [
+    project?.factSheet,
+    project?.factsheet,
+    project?.factSheetUrl,
+    project?.factsheetUrl,
+    project?.fact_sheet,
+    ...factSheetDocuments,
+  ].map(resource => resolveUrl(value(resource))).find(Boolean) || null;
   const latitude = project?.location?.lat ?? project?.location?.latitude;
   const longitude = project?.location?.lng ?? project?.location?.longitude;
   const directions = value(project?.directionLink) || (
@@ -12,7 +25,7 @@ export function propertyResources(project, resolveUrl) {
   );
   return {
     brochure: resolveUrl(value(project?.brochure || project?.brochureUrl || project?.brochurePdf)),
-    factSheet: resolveUrl(value(project?.factSheet)),
+    factSheet,
     walkthrough: resolveUrl(value(project?.virtualWalkthroughLink)),
     directions: resolveUrl(directions),
   };

@@ -2,18 +2,23 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 const source = readFileSync(new URL('../src/utils/documentFiles.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/export /g, '');
-function runtime({ header = '%PDF-', fail = false } = {}) {
+function runtime({ header = '%PDF-', fail = false, sharingAvailable = true, cancelled = false } = {}) {
   const calls = []; let target;
-  class Directory { create(options) { calls.push(['folder', options]); } }
+  class Directory {
+    create(options) { calls.push(['folder', options]); }
+    static async pickDirectoryAsync() { calls.push(['picker']); if (cancelled) throw new Error('User cancelled'); return new Directory(); }
+    createFile(name, mime) { calls.push(['create', name, mime]); return new File(this, name); }
+  }
   class File {
     constructor(folder, name) { target = this; this.name = name; this.uri = `file:///documents/${name}`; this.exists = false; this.size = 0; }
     static async downloadFileAsync(url, file, options) { calls.push(['download', url, options]); file.exists = true; file.size = 30; if (fail) throw new Error('Network failed'); return file; }
     open() { return { readBytes: () => Uint8Array.from([...header].map(c => c.charCodeAt(0))), close() { calls.push(['close']); } }; }
+    async copy(file, options) { calls.push(['copy', file.uri, options]); file.exists = true; }
     move(file) { this.name = file.name; this.uri = file.uri; }
     delete() { this.exists = false; calls.push(['delete']); }
   }
-  const Sharing = { isAvailableAsync: async () => true, shareAsync: async (...args) => calls.push(['share', ...args]) };
-  const api = new Function('resolveMediaUrl', 'Directory', 'File', 'Paths', 'Sharing', 'Linking', 'Platform', `${source}\nreturn { downloadDocument, loadDocumentFile, documentFileName, googleDriveDocument };`)(value => value?.replace("http://localhost:3000", "http://192.168.3.164:3000"), Directory, File, { document: 'file:///documents' }, Sharing, {}, { OS: 'android' });
+  const Sharing = { isAvailableAsync: async () => sharingAvailable, shareAsync: async (...args) => calls.push(['share', ...args]) };
+  const api = new Function('resolveMediaUrl', 'Directory', 'File', 'Paths', 'Sharing', 'Linking', 'Platform', 'StorageUtils', `${source}\nreturn { downloadDocument, loadDocumentFile, documentFileName, googleDriveDocument, saveDocumentFile, shareDocument };`)(value => value?.replace("http://localhost:3000", "http://192.168.3.164:3000"), Directory, File, { document: 'file:///documents' }, Sharing, {}, { OS: 'android' }, { getItem: async () => ({ token: 'test-session' }) });
   return { ...api, calls, target: () => target };
 }
 test('downloads API URL to persistent local PDF and exports with PDF MIME', async () => {
@@ -85,4 +90,37 @@ test('Drive preview keeps the resource key and accepts download URLs', () => {
   for (const url of [null, 'invalid', 'https://drive.google.com/drive/folders/test', 'https://drive.google.com/open?id=../test']) {
     assert.equal(r.googleDriveDocument(url), null);
   }
+});
+
+test('save selects a folder and copies the file without opening sharing', async () => {
+  const r = runtime();
+  const result = await r.saveDocumentFile('https://storage.test/brochure.pdf', 'Brochure');
+  assert.ok(result.uri);
+  assert.ok(r.calls.some(call => call[0] === 'picker'));
+  assert.ok(r.calls.some(call => call[0] === 'copy'));
+  assert.equal(r.calls.find(call => call[0] === 'create')[2], 'application/pdf');
+  assert.ok(!r.calls.some(call => call[0] === 'share'));
+});
+test('share sends photo bytes with image MIME without opening the folder picker', async () => {
+  const r = runtime({ header: String.fromCharCode(137) + 'PNG\r\n' });
+  await r.shareDocument('https://storage.test/photo', 'Photo');
+  assert.equal(r.calls.find(call => call[0] === 'share')[2].mimeType, 'image/png');
+  assert.ok(!r.calls.some(call => call[0] === 'picker'));
+});
+test('unavailable sharing and a cancelled save never report a saved file', async () => {
+  const unavailable = runtime({ sharingAvailable: false });
+  await assert.rejects(unavailable.shareDocument('https://storage.test/file.pdf', 'PDF'), /not available/);
+  assert.ok(!unavailable.calls.some(call => call[0] === 'download'));
+  const cancelled = runtime({ cancelled: true });
+  await assert.rejects(cancelled.saveDocumentFile('https://storage.test/file.pdf', 'PDF'), /cancelled/);
+  assert.ok(!cancelled.calls.some(call => call[0] === 'copy'));
+});
+
+test('preview, share, and save reuse the recently downloaded bytes', async () => {
+  const r = runtime();
+  const url = 'https://storage.test/brochure.pdf';
+  await Promise.all([r.loadDocumentFile(url, 'Brochure'), r.loadDocumentFile(url, 'Brochure')]);
+  await r.shareDocument(url, 'Brochure');
+  await r.saveDocumentFile(url, 'Brochure');
+  assert.equal(r.calls.filter(call => call[0] === 'download').length, 1);
 });

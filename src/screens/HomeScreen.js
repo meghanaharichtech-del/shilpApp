@@ -1,3 +1,4 @@
+import { projectRequestCache } from "../utils/requestCache";
 import { formatPropertyPrice } from "../utils/propertyPrice";
 import { resolveMediaUrl } from "../utils/mediaUrl";
 import FavoriteHeartOverlay from "../components/FavoriteHeartOverlay";
@@ -177,16 +178,17 @@ const HomeScreen = ({ navigation, route, searchMode = false }) => {
           params.category = category.toLowerCase();
         if (searchMode && statusFilter !== "all") params.status = statusFilter;
 
-        const response = await axios.get(PROJECTS_API, {
-          params,
-          signal: controller.signal,
-          timeout: 30000,
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
+        const responseData = await projectRequestCache.load(accessToken, `${PROJECTS_API}:${JSON.stringify(params)}`, async () => {
+          const response = await axios.get(PROJECTS_API, {
+            params,
+            timeout: 30000,
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          if (!response.data?.success) throw new Error("Unable to load projects.");
+          return response.data;
+        }, { force: isRefresh });
+        const response = { data: responseData };
         isDebug && console.log("--------", response.data);
-        isDebug && console.log("--------", accessToken);
 isDebug && console.log("-------- listinggggg", response.data);
         if (!response.data?.success)
           throw new Error("Unable to load projects.");
